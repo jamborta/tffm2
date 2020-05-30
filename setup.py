@@ -10,20 +10,14 @@ def read(fname):
 
 def main():
     setup(
-        name='tffm',
-        version='1.0.1',
-        author="Mikhail Trofimov",
-        author_email="mikhail.trofimov@phystech.edu",
-        url='https://github.com/geffy/tffm',
-        download_url='https://github.com/geffy/tffm/archive/1.0.1.tar.gz',
+        name='tffm-tf2',
+        version='0.0.1',
+        url='https://github.com/jamborta/tffm-tf2',
         description=('TensforFlow implementation of arbitrary order '
                      'Factorization Machine'),
         classifiers=[
-            'Development Status :: 3 - Alpha',
             'Intended Audience :: Science/Research',
             'Topic :: Scientific/Engineering',
-            'License :: OSI Approved :: MIT License',
-            'Programming Language :: Python :: 2.7',
             'Programming Language :: Python :: 3',
         ],
         license='MIT',

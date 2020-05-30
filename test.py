@@ -1,9 +1,8 @@
 import unittest
 import numpy as np
-from tffm import TFFMClassifier
+from tffm import TFFMClassifier, TFFMRegressor
 from scipy import sparse as sp
 import tensorflow as tf
-import pickle
 
 
 class TestFM(unittest.TestCase):
@@ -18,50 +17,56 @@ class TestFM(unittest.TestCase):
         self.X = np.random.randn(n_samples, n_features)
         self.y = np.random.binomial(1, 0.5, size=n_samples)
 
-    def decision_function_order_4(self, input_type, use_diag=False):
-        # Explanation for init_std=1.0.
-        # With small init_std the contribution of higher order terms is
-        # neglectable, so we would essentially test only low-order implementation.
-        # That's why a relatively high init_std=1.0 here.
+    def classifier(self, use_diag):
         model = TFFMClassifier(
             order=4,
             rank=10,
-            optimizer=tf.train.AdamOptimizer(learning_rate=0.1),
+            optimizer=tf.keras.optimizers.Adam(learning_rate=0.1),
             n_epochs=0,
-            input_type=input_type,
             init_std=1.0,
             seed=0,
             use_diag=use_diag
         )
+        return model
 
-        if input_type == 'dense':
-            X = self.X
-        else:
-            X = sp.csr_matrix(self.X)
+    def regressor(self, use_diag):
+        model = TFFMRegressor(
+            order=4,
+            rank=10,
+            optimizer=tf.keras.optimizers.Adam(learning_rate=0.1),
+            n_epochs=0,
+            init_std=1.0,
+            seed=0,
+            use_diag=use_diag
+        )
+        return model
+
+    def decision_function_order_4(self, model):
+
+        X = self.X.astype(np.float32)
 
         model.fit(X, self.y)
         b = model.intercept
         w = model.weights
 
-        desired = self.bruteforce_inference(self.X, w, b, use_diag=use_diag)
+        desired = self.bruteforce_inference(self.X, w, b, use_diag=model.core.use_diag)
 
         actual = model.decision_function(X)
         model.destroy()
 
         np.testing.assert_almost_equal(actual, desired, decimal=4)
 
-    def test_dense_FM(self):
-        self.decision_function_order_4(input_type='dense', use_diag=False)
+    def test_FM_classifier(self):
+        self.decision_function_order_4(self.classifier(use_diag=False))
 
-    def test_dense_PN(self):
-        self.decision_function_order_4(input_type='dense', use_diag=True)
+    def test_PN_classifier(self):
+        self.decision_function_order_4(self.classifier(use_diag=True))
 
-    def test_sparse_FM(self):
-        self.decision_function_order_4(input_type='sparse', use_diag=False)
+    def test_FM_regressor(self):
+        self.decision_function_order_4(self.regressor(use_diag=False))
 
-    def test_sparse_PN(self):
-        self.decision_function_order_4(input_type='sparse', use_diag=True)
-
+    def test_PN_regressor(self):
+        self.decision_function_order_4(self.regressor(use_diag=True))
 
     def bruteforce_inference_one_interaction(self, X, w, order, use_diag):
         n_obj, n_feat = X.shape

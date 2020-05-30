@@ -8,7 +8,7 @@ It supports:
 
 The inference time is linear with respect to the number of features.
 
-Tested on Python3.5, but should work on Python2.7
+Tested on Python3.6
 
 This implementation is quite similar to the one described in Blondel's et al. paper [https://arxiv.org/abs/1607.07195], but was developed independently and prior to the first appearance of the paper.
 
@@ -16,7 +16,7 @@ This implementation is quite similar to the one described in Blondel's et al. pa
 * [scikit-learn](http://scikit-learn.org/stable/)
 * [numpy](http://www.numpy.org/)
 * [tqdm](https://github.com/tqdm/tqdm)
-* [tensorflow 1.0+ (tested on 1.3)](https://www.tensorflow.org/)
+* [tensorflow 2.0+ (tested on 2.2)](https://www.tensorflow.org/)
 
 # Installation
 Stable version can be installed via `pip install tffm`. 
