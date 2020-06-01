@@ -139,17 +139,21 @@ class TFFMBaseModel(six.with_metaclass(ABCMeta, BaseEstimator)):
 			else:
 				print("Initializing from scratch.")
 
-		for epoch in tqdm(range(n_epochs), unit='epoch', disable=(not show_progress)):
+		current_loss = None
+		pbar = tqdm(range(n_epochs), disable=(not show_progress))
+		for epoch in pbar:
 			for d in dataset:
-				current_loss = self.core.loss(self.core(d["X"]), d["y"], d["w"])
+				pbar.set_description("Loss: %2.3f, step: %s, epoch: %s" % ((current_loss.numpy() if current_loss else float('inf')),
+																		   self.core.step.numpy(), epoch))
 				self.core.train(d["X"], d["y"], d["w"])
-				if self.checkpoint_dir:
-					if int(self.core.step) % 10 == 0:
+				if int(self.core.step) % 100 == 0:
+					current_loss = self.core.loss(self.core(d["X"]), d["y"], d["w"])
+					if self.checkpoint_dir:
 						save_path = manager.save()
-						print("Saved checkpoint for step {}: {}".format(int(ckpt.step), save_path))
-						print("loss {:1.2f}".format(current_loss.numpy()))
-				if self.verbose > 1:
-					print('Epoch %2d: loss=%2.5f' % (epoch, current_loss))
+						if self.verbose > 1:
+							print("Saved checkpoint for step {}: {}".format(int(ckpt.step), save_path))
+					if self.verbose > 1:
+						print('Epoch %2d: loss=%2.3f' % (epoch, current_loss))
 
 	def decision_function(self, X: np.ndarray, pred_batch_size: int = None) -> np.ndarray:
 		output = []
