@@ -81,7 +81,8 @@ class TFFMClassifier(TFFMBaseModel):
 		return used_w
 
 	def fit(self, X: np.ndarray, y: np.ndarray,
-			sample_weight: Optional[np.array] = None, pos_class_weight: float = None, n_epochs: int = None,
+			sample_weight: Optional[np.array] = None, pos_class_weight: Optional[float] = None,
+			n_epochs: Optional[int] = None,
 			show_progress: bool = False):
 		# preprocess Y: suppose input {0, 1}, but internally will use {-1, 1} labels instead
 		if not (set(y) == {0, 1}):
@@ -182,7 +183,9 @@ class TFFMRegressor(TFFMBaseModel):
 			log_dir=log_dir,
 			verbose=verbose)
 
-	def fit(self, X: np.ndarray, y: np.ndarray, sample_weight: np.ndarray = None, n_epochs: int = None,
+	def fit(self, X: np.ndarray, y: np.ndarray,
+			sample_weight: Optional[np.ndarray] = None,
+			n_epochs: Optional[int] = None,
 			show_progress: bool = False):
 		sample_weight = np.ones_like(y) if sample_weight is None else sample_weight
 		dataset = self.create_dataset(X, y, sample_weight)
