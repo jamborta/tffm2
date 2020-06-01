@@ -23,18 +23,18 @@ class TFFMClassifier(TFFMBaseModel):
 				 order: int = 2,
 				 rank: int = 2,
 				 optimizer: tf.optimizers = tf.optimizers.Adam(learning_rate=0.01),
-				 reg: int = 0,
+				 reg: float = 0.0,
 				 init_std: float = 0.01,
 				 use_diag: bool = False,
 				 reweight_reg: bool = False,
-				 seed: int = None,
+				 seed: Optional[int] = None,
 				 n_epochs: int = 100,
-				 batch_size: int = None,
+				 batch_size: Optional[int] = None,
 				 shuffle_size: int = 1000,
-				 checkpoint_dir: str = None,
-				 log_dir: str = None,
+				 checkpoint_dir: Optional[str] = None,
+				 log_dir: Optional[str] = None,
 				 verbose: int = 0,
-				 sample_weight: Union[str, np.ndarray] = None,
+				 sample_weight: Union[None, str, np.ndarray] = None,
 				 pos_class_weight: float = None):
 
 		loss = loss_function if loss_function else loss_logistic
@@ -59,7 +59,7 @@ class TFFMClassifier(TFFMBaseModel):
 			log_dir=log_dir,
 			verbose=verbose)
 
-	def _preprocess_sample_weights(self, sample_weight: Union[str, np.ndarray], pos_class_weight: float,
+	def _preprocess_sample_weights(self, sample_weight: Union[np.ndarray, str, None], pos_class_weight: Optional[float],
 								   used_y: np.ndarray):
 		assert sample_weight is None or pos_class_weight is None, "sample_weight and pos_class_weight are mutually exclusive parameters"
 		used_w = np.ones_like(used_y)
@@ -73,7 +73,7 @@ class TFFMClassifier(TFFMBaseModel):
 			used_w[used_y > 0] = neg_rate / pos_rate
 			used_w[used_y < 0] = 1.0
 			return used_w
-		elif type(sample_weight) == np.ndarray and len(sample_weight.shape) == 1:
+		elif isinstance(sample_weight, np.ndarray) and len(sample_weight.shape) == 1:
 			used_w = sample_weight
 		else:
 			raise ValueError("Unexpected type for sample_weight or pos_class_weight parameters.")
@@ -81,7 +81,7 @@ class TFFMClassifier(TFFMBaseModel):
 		return used_w
 
 	def fit(self, X: np.ndarray, y: np.ndarray,
-			sample_weight: np.array = None, pos_class_weight: float = None, n_epochs: int = None,
+			sample_weight: Optional[np.array] = None, pos_class_weight: float = None, n_epochs: int = None,
 			show_progress: bool = False):
 		# preprocess Y: suppose input {0, 1}, but internally will use {-1, 1} labels instead
 		if not (set(y) == {0, 1}):
@@ -156,12 +156,12 @@ class TFFMRegressor(TFFMBaseModel):
 				 init_std: float = 0.01,
 				 use_diag: bool = False,
 				 reweight_reg: bool = False,
-				 seed: int = None,
+				 seed: Optional[int] = None,
 				 n_epochs: int = 100,
-				 batch_size: int = None,
+				 batch_size: Optional[int] = None,
 				 shuffle_size: int = 1000,
-				 checkpoint_dir: str = None,
-				 log_dir: str = None,
+				 checkpoint_dir: Optional[str] = None,
+				 log_dir: Optional[str] = None,
 				 verbose: int = 0):
 		loss = loss_function if loss_function else loss_mse
 
@@ -182,13 +182,13 @@ class TFFMRegressor(TFFMBaseModel):
 			log_dir=log_dir,
 			verbose=verbose)
 
-	def fit(self, X: np.array, y: np.array, sample_weight: np.array = None, n_epochs: int = None,
+	def fit(self, X: np.ndarray, y: np.ndarray, sample_weight: np.ndarray = None, n_epochs: int = None,
 			show_progress: bool = False):
 		sample_weight = np.ones_like(y) if sample_weight is None else sample_weight
 		dataset = self.create_dataset(X, y, sample_weight)
 		self._fit(dataset, n_epochs=n_epochs, show_progress=show_progress)
 
-	def predict(self, X: np.array, pred_batch_size: int = None) -> np.array:
+	def predict(self, X: np.ndarray, pred_batch_size: int = None) -> np.ndarray:
 		"""Predict using the FM model
 
 		Parameters

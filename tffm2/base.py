@@ -5,7 +5,7 @@ from abc import ABCMeta, abstractmethod
 import six
 from tqdm import tqdm  # type: ignore
 import numpy as np  # type: ignore
-from typing import Union, Callable
+from typing import Union, Callable, Optional
 
 
 class TFFMBaseModel(six.with_metaclass(ABCMeta, BaseEstimator)):
@@ -87,16 +87,16 @@ class TFFMBaseModel(six.with_metaclass(ABCMeta, BaseEstimator)):
 				 order: int,
 				 rank: int,
 				 optimizer: tf.optimizers,
-				 reg: int,
+				 reg: float,
 				 init_std: float,
 				 use_diag: bool,
 				 reweight_reg: bool,
-				 seed: int,
+				 seed: Optional[int],
 				 n_epochs: int,
-				 batch_size: int,
+				 batch_size: Optional[int],
 				 shuffle_size: int,
-				 checkpoint_dir: str,
-				 log_dir: str,
+				 checkpoint_dir: Optional[str],
+				 log_dir: Optional[str],
 				 verbose: int):
 
 		self.core = TFFMCore(loss_function=loss_function,
@@ -151,7 +151,7 @@ class TFFMBaseModel(six.with_metaclass(ABCMeta, BaseEstimator)):
 				if self.verbose > 1:
 					print('Epoch %2d: loss=%2.5f' % (epoch, current_loss))
 
-	def decision_function(self, X: np.array, pred_batch_size: int = None) -> np.array:
+	def decision_function(self, X: np.ndarray, pred_batch_size: int = None) -> np.ndarray:
 		output = []
 		if pred_batch_size is None:
 			pred_batch_size = self.batch_size
@@ -167,7 +167,7 @@ class TFFMBaseModel(six.with_metaclass(ABCMeta, BaseEstimator)):
 		# WARNING: be careful with this reshape in case of multiclass
 		return distances
 
-	def create_dataset(self, X: np.array, y: np.array, w: np.array) -> tf.data.Dataset:
+	def create_dataset(self, X: np.ndarray, y: np.ndarray, w: np.ndarray) -> tf.data.Dataset:
 		dataset = tf.data.Dataset.from_tensor_slices(
 			{"X": X, "y": y.astype(np.float32), "w": w.astype(np.float32)}).shuffle(self.shuffle_size)
 		if self.batch_size:

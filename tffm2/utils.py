@@ -9,7 +9,7 @@ from collections import defaultdict
 from typing import List, Dict, Tuple, Iterable
 
 
-def get_shorter_decompositions(basic_decomposition: np.array) -> Tuple[Iterable, np.array]:
+def get_shorter_decompositions(basic_decomposition: np.ndarray) -> Tuple[Iterable, np.ndarray]:
 	"""Returns all arrays simpler than basic_decomposition.
 
 	Returns all arrays that can be constructed from basic_decomposition

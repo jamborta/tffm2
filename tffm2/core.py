@@ -2,7 +2,7 @@ import tensorflow as tf  # type: ignore
 from . import utils
 import math
 import numpy as np  # type: ignore
-from typing import Callable, Union
+from typing import Callable, Union, Optional
 
 
 class TFFMCore(object):
@@ -95,11 +95,11 @@ class TFFMCore(object):
 				 order: int,
 				 rank: int,
 				 optimizer: tf.optimizers,
-				 reg: int,
+				 reg: float,
 				 init_std: float,
 				 use_diag: bool,
 				 reweight_reg: bool,
-				 seed: float):
+				 seed: Optional[int]):
 		self.order = order
 		self.rank = rank
 		self.use_diag = use_diag
