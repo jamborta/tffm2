@@ -11,7 +11,7 @@ def read(fname):
 def main():
     setup(
         name='tffm2',
-        version='0.0.2',
+        version='0.0.3',
         url='https://github.com/jamborta/tffm2',
         description=('TensforFlow implementation of arbitrary order '
                      'Factorization Machine'),
