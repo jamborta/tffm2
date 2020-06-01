@@ -4,7 +4,7 @@ import math
 import numpy as np
 
 
-class TFFMCore():
+class TFFMCore(tf.keras.Model):
 	"""This class implements underlying routines about creating computational graph.
 
 	Its required `n_features` to be set at graph building time.
@@ -113,7 +113,7 @@ class TFFMCore():
 	def set_num_features(self, n_features):
 		self.n_features = n_features
 
-	def init_learnable_params(self):
+	def init_weights(self):
 		self.w = [None] * self.order
 		for i in range(1, self.order + 1):
 			r = self.rank
@@ -122,6 +122,7 @@ class TFFMCore():
 			rnd_weights = tf.random.uniform([self.n_features, r], -self.init_std, self.init_std)
 			self.w[i - 1] = tf.Variable(rnd_weights, trainable=True, name='embedding_' + str(i))
 		self.b = tf.Variable(self.init_std, trainable=True, name='bias')
+		self.step = tf.Variable(1, trainable=False, name='step')
 		tf.summary.scalar('bias', self.b)
 
 	def __call__(self, train_x):
@@ -184,3 +185,4 @@ class TFFMCore():
 		vars = model.w + [model.b]
 		grads = t.gradient(current_loss, vars)
 		self.optimizer.apply_gradients(zip(grads, vars))
+		self.step = self.step + 1

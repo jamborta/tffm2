@@ -24,7 +24,7 @@ class TFFMClassifier(TFFMBaseModel):
         base class TFFMBaseModel."""
 
 		init_params['loss_function'] = loss_logistic
-		self.init_basemodel(**init_params)
+		super().__init__(**init_params)
 
 	def _preprocess_sample_weights(self, sample_weight, pos_class_weight, used_y):
 		assert sample_weight is None or pos_class_weight is None, "sample_weight and pos_class_weight are mutually exclusive parameters"
@@ -60,7 +60,7 @@ class TFFMClassifier(TFFMBaseModel):
 		used_w = self._preprocess_sample_weights(self.sample_weight, self.pos_class_weight, used_y)
 		dataset = tf.data.Dataset. \
 			from_tensor_slices({"X": X, "y": used_y.astype(np.float32), "w": used_w.astype(np.float32)}). \
-			shuffle(1024 * 100).batch(1024, drop_remainder=True)
+			shuffle(self.batch_size * 100).batch(self.batch_size, drop_remainder=True).prefetch(1)
 		self._fit(dataset, n_epochs=n_epochs, show_progress=show_progress)
 
 	def predict(self, X, pred_batch_size=None):
@@ -128,7 +128,7 @@ class TFFMRegressor(TFFMBaseModel):
 		sample_weight = np.ones_like(y) if sample_weight is None else sample_weight
 		dataset = tf.data.Dataset. \
 			from_tensor_slices({"X": X, "y": y.astype(np.float32), "w": sample_weight.astype(np.float32)}). \
-			shuffle(1024 * 100).batch(1024, drop_remainder=True)
+			shuffle(self.batch_size * 100).batch(self.batch_size, drop_remainder=True).prefetch(1)
 		self._fit(dataset, n_epochs=n_epochs, show_progress=show_progress)
 
 	def predict(self, X, pred_batch_size=None):

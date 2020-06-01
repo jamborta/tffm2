@@ -82,13 +82,15 @@ class TFFMBaseModel(six.with_metaclass(ABCMeta, BaseEstimator)):
 	See TFFMCore's doc for details.
 	"""
 
-	def init_basemodel(self, n_epochs=100, batch_size=-1,
-					   log_dir=None, session_config=None,
-					   verbose=0, seed=None, sample_weight=None,
-					   pos_class_weight=None, **core_arguments):
+	def __init__(self, n_epochs=100, batch_size=-1,
+				 checkpoint_dir=None,
+				 log_dir=None, session_config=None,
+				 verbose=0, seed=None, sample_weight=None,
+				 pos_class_weight=None, **core_arguments):
 		core_arguments['seed'] = seed
 		self.core = TFFMCore(**core_arguments)
 		self.batch_size = batch_size
+		self.checkpoint_dir = checkpoint_dir
 		self.n_epochs = n_epochs
 		self.need_logs = log_dir is not None
 		self.log_dir = log_dir
@@ -102,21 +104,43 @@ class TFFMBaseModel(six.with_metaclass(ABCMeta, BaseEstimator)):
 	def _fit(self, dataset: tf.data.Dataset, n_epochs: int = None, show_progress: bool = False):
 		if self.core.n_features is None:
 			self.core.set_num_features(dataset.element_spec['X'].shape[1])
-		self.core.init_learnable_params()
+		self.core.init_weights()
 		if n_epochs is None:
 			n_epochs = self.n_epochs
-		for epoch in range(n_epochs):
+
+		if self.checkpoint_dir:
+			ckpt = tf.train.Checkpoint(step=self.core.step, optimizer=self.core.optimizer, w=self.core.w, b=self.core.b)
+			manager = tf.train.CheckpointManager(ckpt, self.checkpoint_dir, max_to_keep=3)
+			ckpt.restore(manager.latest_checkpoint)
+			if self.verbose > 1:
+				inside_checkpoint = tf.train.list_variables(manager.latest_checkpoint)
+				inside_checkpoint_format = "\n".join([f"{a},{b}" for a, b in inside_checkpoint])
+				print(f"Checkpoint variables: \n {inside_checkpoint_format}")
+			if manager.latest_checkpoint:
+				print("Restored from {}".format(manager.latest_checkpoint))
+			else:
+				print("Initializing from scratch.")
+
+		for epoch in tqdm(range(n_epochs), unit='epoch', disable=(not show_progress)):
 			for d in dataset:
 				current_loss = self.core.loss(self.core(d["X"]), d["y"], d["w"])
 				self.core.train(self.core, d["X"], d["y"], d["w"])
-				print('Epoch %2d: loss=%2.5f' % (epoch, current_loss))
+				if self.checkpoint_dir:
+					if int(self.core.step) % 10 == 0:
+						save_path = manager.save()
+						print("Saved checkpoint for step {}: {}".format(int(ckpt.step), save_path))
+						print("loss {:1.2f}".format(current_loss.numpy()))
+				if self.verbose > 1:
+					print('Epoch %2d: loss=%2.5f' % (epoch, current_loss))
 
 	def decision_function(self, X, pred_batch_size=None):
 		output = []
 		if pred_batch_size is None:
 			pred_batch_size = self.batch_size
 
-		output = self.core(X)
+		dataset = tf.data.Dataset.from_tensor_slices({"X": X}).batch(pred_batch_size).prefetch(1)
+		for d in dataset:
+			output.append(self.core(d["X"]))
 		distances = np.concatenate(output).reshape(-1)
 		# WARNING: be careful with this reshape in case of multiclass
 		return distances
@@ -134,16 +158,3 @@ class TFFMBaseModel(six.with_metaclass(ABCMeta, BaseEstimator)):
 	def weights(self):
 		"""Export underlying weights from tf.Variables to np.arrays."""
 		return [x.numpy() for x in self.core.w]
-
-	def save_state(self, path):
-		self.core.saver.save(self.session, path)
-
-	def load_state(self, path):
-		if self.core.graph is None:
-			self.core.build_graph()
-			self.initialize_session()
-		self.core.saver.restore(self.session, path)
-
-	def destroy(self):
-		"""Terminates session and destroyes graph."""
-		self.core.graph = None
