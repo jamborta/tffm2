@@ -10,9 +10,9 @@ def read(fname):
 
 def main():
     setup(
-        name='tffm-tf2',
+        name='tffm2',
         version='0.0.1',
-        url='https://github.com/jamborta/tffm-tf2',
+        url='https://github.com/jamborta/tffm2',
         description=('TensforFlow implementation of arbitrary order '
                      'Factorization Machine'),
         classifiers=[

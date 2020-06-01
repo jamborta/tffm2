@@ -24,7 +24,7 @@ class TFFMBaseModel(six.with_metaclass(ABCMeta, BaseEstimator)):
 
 	Parameters (for initialization)
 	----------
-	batch_size : int, default: -1
+	batch_size : int, default: None
 		Number of samples in mini-batches. Shuffled every epoch.
 		Use -1 for full gradient (whole training set in each batch).
 
@@ -82,7 +82,9 @@ class TFFMBaseModel(six.with_metaclass(ABCMeta, BaseEstimator)):
 	See TFFMCore's doc for details.
 	"""
 
-	def __init__(self, n_epochs=100, batch_size=-1,
+	def __init__(self, n_epochs=100,
+				 batch_size=None,
+				 shuffle_size=1000,
 				 checkpoint_dir=None,
 				 log_dir=None, session_config=None,
 				 verbose=0, seed=None, sample_weight=None,
@@ -90,6 +92,7 @@ class TFFMBaseModel(six.with_metaclass(ABCMeta, BaseEstimator)):
 		core_arguments['seed'] = seed
 		self.core = TFFMCore(**core_arguments)
 		self.batch_size = batch_size
+		self.shuffle_size = shuffle_size
 		self.checkpoint_dir = checkpoint_dir
 		self.n_epochs = n_epochs
 		self.need_logs = log_dir is not None
@@ -138,12 +141,24 @@ class TFFMBaseModel(six.with_metaclass(ABCMeta, BaseEstimator)):
 		if pred_batch_size is None:
 			pred_batch_size = self.batch_size
 
-		dataset = tf.data.Dataset.from_tensor_slices({"X": X}).batch(pred_batch_size).prefetch(1)
+		dataset = tf.data.Dataset.from_tensor_slices({"X": X})
+		if pred_batch_size:
+			dataset = dataset.batch(pred_batch_size)
+		else:
+			dataset = dataset.batch(X.shape[0])
 		for d in dataset:
 			output.append(self.core(d["X"]))
 		distances = np.concatenate(output).reshape(-1)
 		# WARNING: be careful with this reshape in case of multiclass
 		return distances
+
+	def create_dataset(self, X: np.array, y: np.array, w: np.array) -> tf.data.Dataset:
+		dataset = tf.data.Dataset.from_tensor_slices({"X": X, "y": y.astype(np.float32), "w": w.astype(np.float32)}).shuffle(self.shuffle_size)
+		if self.batch_size:
+			dataset = dataset.batch(self.batch_size)
+		else:
+			dataset = dataset.batch(X.shape[0])
+		return dataset
 
 	@abstractmethod
 	def predict(self, X, pred_batch_size=None):

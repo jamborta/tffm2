@@ -1,6 +1,6 @@
 import unittest
 import numpy as np
-from tffm import TFFMClassifier, TFFMRegressor
+from tffm2 import TFFMClassifier, TFFMRegressor
 from scipy import sparse as sp
 import tensorflow as tf
 
@@ -52,7 +52,6 @@ class TestFM(unittest.TestCase):
         desired = self.bruteforce_inference(self.X, w, b, use_diag=model.core.use_diag)
 
         actual = model.decision_function(X)
-        model.destroy()
 
         np.testing.assert_almost_equal(actual, desired, decimal=4)
 

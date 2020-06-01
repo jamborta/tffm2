@@ -1,16 +1,13 @@
-This is a TensorFlow implementation of an arbitrary order (>=2) Factorization Machine based on paper [Factorization Machines with libFM](http://dl.acm.org/citation.cfm?doid=2168752.2168771).
+This is a TensorFlow 2.0 implementation of an arbitrary order (>=2) Factorization Machine based on paper [Factorization Machines with libFM](http://dl.acm.org/citation.cfm?doid=2168752.2168771).
 
 It supports:
-* dense and sparse inputs
 * different (gradient-based) optimization methods
 * classification/regression via different loss functions (logistic and mse implemented)
-* logging via TensorBoard
 
 The inference time is linear with respect to the number of features.
 
 Tested on Python3.6
 
-This implementation is quite similar to the one described in Blondel's et al. paper [https://arxiv.org/abs/1607.07195], but was developed independently and prior to the first appearance of the paper.
 
 # Dependencies
 * [scikit-learn](http://scikit-learn.org/stable/)
@@ -19,16 +16,16 @@ This implementation is quite similar to the one described in Blondel's et al. pa
 * [tensorflow 2.0+ (tested on 2.2)](https://www.tensorflow.org/)
 
 # Installation
-Stable version can be installed via `pip install tffm`. 
+Stable version can be installed via `pip install tffm2`. 
 
 # Usage
 The interface is similar to scikit-learn models. To train a 6-order FM model with rank=10 for 100 iterations with learning_rate=0.01 use the following sample
 ```python
-from tffm import TFFMClassifier
+from tffm2 import TFFMClassifier
 model = TFFMClassifier(
     order=6,
     rank=10,
-    optimizer=tf.train.AdamOptimizer(learning_rate=0.01),
+    optimizer=tf.keras.optimizers.Adam(learning_rate=0.00001),
     n_epochs=100,
     batch_size=-1,
     init_std=0.001,
@@ -46,15 +43,6 @@ It's highly recommended to read `tffm/core.py` for help.
 Just run ```python test.py``` in the terminal. ```nosetests``` works too, but you must pass the `--logging-level=WARNING` flag to avoid printing insane amounts of TensorFlow logs to the screen.
 
 
-# Citation
-If you use this software in academic research, please, cite it using the following BibTeX:
-```latex
-@misc{trofimov2016,
-author = {Mikhail Trofimov, Alexander Novikov},
-title = {tffm: TensorFlow implementation of an arbitrary order Factorization Machine},
-year = {2016},
-publisher = {GitHub},
-journal = {GitHub repository},
-howpublished = {\url{https://github.com/geffy/tffm}},
-}
+# Reference
+This code is ported from https://github.com/geffy/tffm
 ```
