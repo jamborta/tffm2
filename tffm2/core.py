@@ -154,7 +154,7 @@ class TFFMCore(tf.keras.Model):
 			self.regularization = 0
 			with tf.name_scope('reweights'):
 				if self.reweight_reg:
-					counts = tf.math.count_nonzero(train_x, axis=0, keep_dims=True)
+					counts = tf.math.count_nonzero(train_x, axis=0, keepdims=True)
 					sqrt_counts = tf.transpose(tf.sqrt(tf.cast(counts, np.float32)))
 				else:
 					sqrt_counts = tf.ones_like(self.w[0])
