@@ -27,9 +27,7 @@ model = TFFMClassifier(
     rank=10,
     optimizer=tf.keras.optimizers.Adam(learning_rate=0.00001),
     n_epochs=100,
-    batch_size=-1,
-    init_std=0.001,
-    input_type='dense'
+    init_std=0.001
 )
 model.fit(X_tr, y_tr, show_progress=True)
 ```
@@ -40,9 +38,8 @@ It's highly recommended to read `tffm/core.py` for help.
 
 
 # Testing
-Just run ```python test.py``` in the terminal. ```nosetests``` works too, but you must pass the `--logging-level=WARNING` flag to avoid printing insane amounts of TensorFlow logs to the screen.
-
-
+Run ```python test.py``` from the terminal.
+ 
 # Reference
 This code is ported from https://github.com/geffy/tffm
 ```

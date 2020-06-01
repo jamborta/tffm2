@@ -1,10 +1,11 @@
-import tensorflow as tf
+import tensorflow as tf  # type: ignore
 from . import utils
 import math
-import numpy as np
+import numpy as np  # type: ignore
+from typing import Callable, Union
 
 
-class TFFMCore(tf.keras.Model):
+class TFFMCore(object):
 	"""This class implements underlying routines about creating computational graph.
 
 	Its required `n_features` to be set at graph building time.
@@ -20,14 +21,9 @@ class TFFMCore(tf.keras.Model):
 		Number of factors in low-rank appoximation.
 		This value is shared across different orders of interaction.
 
-	input_type : str, 'dense' or 'sparse', default: 'dense'
-		Type of input data. Only numpy.array allowed for 'dense' and
-		scipy.sparse.csr_matrix for 'sparse'. This affects construction of
-		computational graph and cannot be changed during training/testing.
-
-	loss_function : function: (tf.Op, tf.Op) -> tf.Op, default: None
+	loss_function : function: (tf.Tensor, tf.Tensro) -> tf.Tensor, default: None
 		Loss function.
-		Take 2 tf.Ops: outputs and targets and should return tf.Op of loss
+		Take 2 tf.Tensor: outputs and targets and should return tf.Tensor of loss
 		See examples: .utils.loss_mse, .utils.loss_logistic
 
 	optimizer : tf.train.Optimizer, default: Adam(learning_rate=0.01)
@@ -94,10 +90,16 @@ class TFFMCore(tf.keras.Model):
 
 	"""
 
-	def __init__(self, order=2, rank=2, input_type='dense', loss_function=None,
-				 optimizer=tf.keras.optimizers.Adam(learning_rate=0.01), reg=0,
-				 init_std=0.01, use_diag=False, reweight_reg=False,
-				 seed=None):
+	def __init__(self,
+				 loss_function: Callable[[tf.Tensor, tf.Tensor], tf.Operation],
+				 order: int,
+				 rank: int,
+				 optimizer: tf.optimizers,
+				 reg: int,
+				 init_std: float,
+				 use_diag: bool,
+				 reweight_reg: bool,
+				 seed: float):
 		self.order = order
 		self.rank = rank
 		self.use_diag = use_diag
@@ -125,7 +127,7 @@ class TFFMCore(tf.keras.Model):
 		self.step = tf.Variable(1, trainable=False, name='step')
 		tf.summary.scalar('bias', self.b)
 
-	def __call__(self, train_x):
+	def __call__(self, train_x: tf.Tensor) -> tf.Tensor:
 		with tf.name_scope('linear_part'):
 			contribution = tf.matmul(train_x, self.w[0])
 		y_pred = self.b + contribution
@@ -167,7 +169,7 @@ class TFFMCore(tf.keras.Model):
 			tf.summary.scalar('regularization_penalty', self.regularization)
 		return y_pred
 
-	def loss(self, y_pred, y_true, w):
+	def loss(self, y_pred: tf.Tensor, y_true: tf.Tensor, w: tf.Tensor):
 		with tf.name_scope('loss'):
 			loss = self.loss_function(y_pred, y_true) * w
 			reduced_loss = tf.reduce_mean(loss)
@@ -179,10 +181,10 @@ class TFFMCore(tf.keras.Model):
 			name='target')
 		return checked_target
 
-	def train(self, model, inputs, outputs, w):
+	def train(self, inputs, outputs, w):
 		with tf.GradientTape() as t:
-			current_loss = model.loss(model(inputs), outputs, w)
-		vars = model.w + [model.b]
+			current_loss = self.loss(self(inputs), outputs, w)
+		vars = self.w + [self.b]
 		grads = t.gradient(current_loss, vars)
 		self.optimizer.apply_gradients(zip(grads, vars))
 		self.step = self.step + 1

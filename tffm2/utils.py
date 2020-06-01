@@ -1,14 +1,15 @@
 """Supporting functions for arbitrary order Factorization Machines."""
 
 import math
-import numpy as np
-import tensorflow as tf
+import numpy as np  # type: ignore
+import tensorflow as tf  # type: ignore
 import itertools
 from itertools import combinations_with_replacement, takewhile, count
 from collections import defaultdict
+from typing import List, Dict, Tuple, Iterable
 
 
-def get_shorter_decompositions(basic_decomposition):
+def get_shorter_decompositions(basic_decomposition: np.array) -> Tuple[Iterable, np.array]:
 	"""Returns all arrays simpler than basic_decomposition.
 
 	Returns all arrays that can be constructed from basic_decomposition
@@ -45,8 +46,8 @@ def get_shorter_decompositions(basic_decomposition):
 			variations[sorted_pow].append(tuple(curr_pows))
 			decompositions.append(sorted_pow)
 	if len(decompositions) > 1:
-		decompositions = np.unique(decompositions)
-		counts = np.zeros(decompositions.shape[0])
+		decompositions = list(np.unique(decompositions))
+		counts = np.zeros(len(decompositions))
 		for i, dec in enumerate(decompositions):
 			counts[i] = len(np.unique(variations[dec]))
 	else:
@@ -54,7 +55,7 @@ def get_shorter_decompositions(basic_decomposition):
 	return decompositions, counts
 
 
-def sort_topologically(children_by_node, node_list):
+def sort_topologically(children_by_node: Dict, node_list: Iterable) -> List[Tuple]:
 	"""Topological sort of a graph.
 
 	Parameters
@@ -69,8 +70,8 @@ def sort_topologically(children_by_node, node_list):
 	-------
 	list, nodes in the topological order
 	"""
-	levels_by_node = {}
-	nodes_by_level = defaultdict(set)
+	levels_by_node: Dict = {}
+	nodes_by_level: Dict = defaultdict(set)
 
 	def walk_depth_first(node):
 		if node in levels_by_node:
@@ -84,12 +85,11 @@ def sort_topologically(children_by_node, node_list):
 	for node in node_list:
 		walk_depth_first(node)
 
-	nodes_by_level = list(takewhile(lambda x: x != [],
-									(list(nodes_by_level[i]) for i in count())))
-	return list(itertools.chain.from_iterable(nodes_by_level))
+	nodes = list(takewhile(lambda x: x != [], (list(nodes_by_level[i]) for i in count())))
+	return list(itertools.chain.from_iterable(nodes))
 
 
-def initial_coefficient(decomposition):
+def initial_coefficient(decomposition: Tuple):
 	"""Compute initial coefficient of the decomposition."""
 	order = np.sum(decomposition)
 	coef = math.factorial(order)
@@ -99,7 +99,7 @@ def initial_coefficient(decomposition):
 	return coef
 
 
-def powers_and_coefs(order):
+def powers_and_coefs(order: int) -> Iterable:
 	"""For a `order`-way FM returns the powers and their coefficients needed to
 	compute model equation efficiently
 	"""
@@ -108,13 +108,13 @@ def powers_and_coefs(order):
 	graph_reversed = defaultdict(lambda: list())
 	for dec in decompositions:
 		parents, weights = get_shorter_decompositions(dec)
-		for i in range(len(parents)):
-			graph[parents[i]].append((dec, weights[i]))
-			graph_reversed[dec].append((parents[i], weights[i]))
+		for i, p in enumerate(parents):
+			graph[p].append((dec, weights[i]))
+			graph_reversed[dec].append((p, weights[i]))
 
 	topo_order = sort_topologically(graph, decompositions)
 
-	final_coefs = defaultdict(lambda: 0)
+	final_coefs: Dict = defaultdict(lambda: 0)
 	for node in topo_order:
 		final_coefs[node] += initial_coefficient(node)
 		for p, w in graph_reversed[node]:
@@ -132,11 +132,11 @@ def powers_and_coefs(order):
 # Should take 2 tf.Ops: outputs, targets and should return tf.Op of element-wise losses
 # Be careful about dimensionality -- maybe tf.transpose(outputs) is needed
 
-def loss_logistic(y_pred, y_true):
+def loss_logistic(y_pred: tf.Tensor, y_true: tf.Tensor) -> tf.Tensor:
 	margins = -y_true * tf.transpose(y_pred)
 	raw_loss = tf.math.log(tf.add(1.0, tf.exp(margins)))
 	return tf.minimum(raw_loss, 100, name='truncated_log_loss')
 
 
-def loss_mse(y_pred, y):
-	return tf.pow(y - tf.transpose(y_pred), 2, name='mse_loss')
+def loss_mse(y_pred: tf.Tensor, y_true: tf.Tensor) -> tf.Tensor:
+	return tf.pow(y_true - tf.transpose(y_pred), 2, name='mse_loss')

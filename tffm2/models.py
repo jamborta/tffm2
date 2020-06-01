@@ -1,9 +1,10 @@
 """Implementation of an arbitrary order Factorization Machines."""
 
-import numpy as np
+import numpy as np  # type: ignore
 from .base import TFFMBaseModel
 from .utils import loss_logistic, loss_mse
-import tensorflow as tf
+import tensorflow as tf  # type: ignore
+from typing import Union, Optional, Callable
 
 
 class TFFMClassifier(TFFMBaseModel):
@@ -17,16 +18,49 @@ class TFFMClassifier(TFFMBaseModel):
 	See TFFMBaseModel and TFFMCore docs for details about parameters.
 	"""
 
-	def __init__(self, **init_params):
+	def __init__(self,
+				 loss_function: Callable[[tf.Tensor, tf.Tensor], tf.Operation] = None,
+				 order: int = 2,
+				 rank: int = 2,
+				 optimizer: tf.optimizers = tf.optimizers.Adam(learning_rate=0.01),
+				 reg: int = 0,
+				 init_std: float = 0.01,
+				 use_diag: bool = False,
+				 reweight_reg: bool = False,
+				 seed: int = None,
+				 n_epochs: int = 100,
+				 batch_size: int = None,
+				 shuffle_size: int = 1000,
+				 checkpoint_dir: str = None,
+				 log_dir: str = None,
+				 verbose: int = 0,
+				 sample_weight: Union[str, np.ndarray] = None,
+				 pos_class_weight: float = None):
 
-		assert 'loss_function' not in init_params, """Parameter 'loss_function' is
-        not supported for TFFMClassifier. For custom loss function, extend the
-        base class TFFMBaseModel."""
+		loss = loss_function if loss_function else loss_logistic
 
-		init_params['loss_function'] = loss_logistic
-		super().__init__(**init_params)
+		self.sample_weight = sample_weight
+		self.pos_class_weight = pos_class_weight
 
-	def _preprocess_sample_weights(self, sample_weight, pos_class_weight, used_y):
+		super().__init__(
+			loss_function=loss,
+			order=order,
+			rank=rank,
+			optimizer=optimizer,
+			reg=reg,
+			init_std=init_std,
+			use_diag=use_diag,
+			reweight_reg=reweight_reg,
+			seed=seed,
+			n_epochs=n_epochs,
+			batch_size=batch_size,
+			shuffle_size=shuffle_size,
+			checkpoint_dir=checkpoint_dir,
+			log_dir=log_dir,
+			verbose=verbose)
+
+	def _preprocess_sample_weights(self, sample_weight: Union[str, np.ndarray], pos_class_weight: float,
+								   used_y: np.ndarray):
 		assert sample_weight is None or pos_class_weight is None, "sample_weight and pos_class_weight are mutually exclusive parameters"
 		used_w = np.ones_like(used_y)
 		if sample_weight is None and pos_class_weight is None:
@@ -46,8 +80,8 @@ class TFFMClassifier(TFFMBaseModel):
 
 		return used_w
 
-	def fit(self, X: np.array, y: np.array,
-			sample_weight: np.array = None, pos_class_weight: np.array = None, n_epochs: int = None,
+	def fit(self, X: np.ndarray, y: np.ndarray,
+			sample_weight: np.array = None, pos_class_weight: float = None, n_epochs: int = None,
 			show_progress: bool = False):
 		# preprocess Y: suppose input {0, 1}, but internally will use {-1, 1} labels instead
 		if not (set(y) == {0, 1}):
@@ -114,20 +148,47 @@ class TFFMRegressor(TFFMBaseModel):
 	See TFFMBaseModel and TFFMCore docs for details about parameters.
 	"""
 
-	def __init__(self, **init_params):
-		assert 'loss_function' not in init_params, """Parameter 'loss_function' is
-        not supported for TFFMRegressor. For custom loss function, extend the
-        base class TFFMBaseModel."""
+	def __init__(self, loss_function: Callable[[tf.Tensor, tf.Tensor], tf.Operation] = None,
+				 order: int = 2,
+				 rank: int = 2,
+				 optimizer: tf.optimizers = tf.optimizers.Adam(learning_rate=0.01),
+				 reg: int = 0,
+				 init_std: float = 0.01,
+				 use_diag: bool = False,
+				 reweight_reg: bool = False,
+				 seed: int = None,
+				 n_epochs: int = 100,
+				 batch_size: int = None,
+				 shuffle_size: int = 1000,
+				 checkpoint_dir: str = None,
+				 log_dir: str = None,
+				 verbose: int = 0):
+		loss = loss_function if loss_function else loss_mse
 
-		init_params['loss_function'] = loss_mse
-		super().__init__(**init_params)
+		super().__init__(
+			loss_function=loss,
+			order=order,
+			rank=rank,
+			optimizer=optimizer,
+			reg=reg,
+			init_std=init_std,
+			use_diag=use_diag,
+			reweight_reg=reweight_reg,
+			seed=seed,
+			n_epochs=n_epochs,
+			batch_size=batch_size,
+			shuffle_size=shuffle_size,
+			checkpoint_dir=checkpoint_dir,
+			log_dir=log_dir,
+			verbose=verbose)
 
-	def fit(self, X, y, sample_weight=None, n_epochs=None, show_progress=False):
+	def fit(self, X: np.array, y: np.array, sample_weight: np.array = None, n_epochs: int = None,
+			show_progress: bool = False):
 		sample_weight = np.ones_like(y) if sample_weight is None else sample_weight
 		dataset = self.create_dataset(X, y, sample_weight)
 		self._fit(dataset, n_epochs=n_epochs, show_progress=show_progress)
 
-	def predict(self, X, pred_batch_size=None):
+	def predict(self, X: np.array, pred_batch_size: int = None) -> np.array:
 		"""Predict using the FM model
 
 		Parameters

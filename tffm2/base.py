@@ -1,11 +1,11 @@
-import tensorflow as tf
+import tensorflow as tf  # type: ignore
 from .core import TFFMCore
-from sklearn.base import BaseEstimator
+from sklearn.base import BaseEstimator  # type: ignore
 from abc import ABCMeta, abstractmethod
 import six
-from tqdm import tqdm
-import numpy as np
-import os
+from tqdm import tqdm  # type: ignore
+import numpy as np  # type: ignore
+from typing import Union, Callable
 
 
 class TFFMBaseModel(six.with_metaclass(ABCMeta, BaseEstimator)):
@@ -82,27 +82,42 @@ class TFFMBaseModel(six.with_metaclass(ABCMeta, BaseEstimator)):
 	See TFFMCore's doc for details.
 	"""
 
-	def __init__(self, n_epochs=100,
-				 batch_size=None,
-				 shuffle_size=1000,
-				 checkpoint_dir=None,
-				 log_dir=None, session_config=None,
-				 verbose=0, seed=None, sample_weight=None,
-				 pos_class_weight=None, **core_arguments):
-		core_arguments['seed'] = seed
-		self.core = TFFMCore(**core_arguments)
+	def __init__(self,
+				 loss_function: Callable[[tf.Tensor, tf.Tensor], tf.Operation],
+				 order: int,
+				 rank: int,
+				 optimizer: tf.optimizers,
+				 reg: int,
+				 init_std: float,
+				 use_diag: bool,
+				 reweight_reg: bool,
+				 seed: int,
+				 n_epochs: int,
+				 batch_size: int,
+				 shuffle_size: int,
+				 checkpoint_dir: str,
+				 log_dir: str,
+				 verbose: int):
+
+		self.core = TFFMCore(loss_function=loss_function,
+							 order=order,
+							 rank=rank,
+							 optimizer=optimizer,
+							 reg=reg,
+							 init_std=init_std,
+							 use_diag=use_diag,
+							 reweight_reg=reweight_reg,
+							 seed=seed)
+
 		self.batch_size = batch_size
 		self.shuffle_size = shuffle_size
 		self.checkpoint_dir = checkpoint_dir
 		self.n_epochs = n_epochs
 		self.need_logs = log_dir is not None
 		self.log_dir = log_dir
-		self.session_config = session_config
 		self.verbose = verbose
 		self.steps = 0
 		self.seed = seed
-		self.sample_weight = sample_weight
-		self.pos_class_weight = pos_class_weight
 
 	def _fit(self, dataset: tf.data.Dataset, n_epochs: int = None, show_progress: bool = False):
 		if self.core.n_features is None:
@@ -127,7 +142,7 @@ class TFFMBaseModel(six.with_metaclass(ABCMeta, BaseEstimator)):
 		for epoch in tqdm(range(n_epochs), unit='epoch', disable=(not show_progress)):
 			for d in dataset:
 				current_loss = self.core.loss(self.core(d["X"]), d["y"], d["w"])
-				self.core.train(self.core, d["X"], d["y"], d["w"])
+				self.core.train(d["X"], d["y"], d["w"])
 				if self.checkpoint_dir:
 					if int(self.core.step) % 10 == 0:
 						save_path = manager.save()
@@ -136,7 +151,7 @@ class TFFMBaseModel(six.with_metaclass(ABCMeta, BaseEstimator)):
 				if self.verbose > 1:
 					print('Epoch %2d: loss=%2.5f' % (epoch, current_loss))
 
-	def decision_function(self, X, pred_batch_size=None):
+	def decision_function(self, X: np.array, pred_batch_size: int = None) -> np.array:
 		output = []
 		if pred_batch_size is None:
 			pred_batch_size = self.batch_size
@@ -153,7 +168,8 @@ class TFFMBaseModel(six.with_metaclass(ABCMeta, BaseEstimator)):
 		return distances
 
 	def create_dataset(self, X: np.array, y: np.array, w: np.array) -> tf.data.Dataset:
-		dataset = tf.data.Dataset.from_tensor_slices({"X": X, "y": y.astype(np.float32), "w": w.astype(np.float32)}).shuffle(self.shuffle_size)
+		dataset = tf.data.Dataset.from_tensor_slices(
+			{"X": X, "y": y.astype(np.float32), "w": w.astype(np.float32)}).shuffle(self.shuffle_size)
 		if self.batch_size:
 			dataset = dataset.batch(self.batch_size)
 		else:
