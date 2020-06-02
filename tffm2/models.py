@@ -80,21 +80,24 @@ class TFFMClassifier(TFFMBaseModel):
 
 		return used_w
 
-	def fit(self, X: np.ndarray, y: np.ndarray,
+	def fit(self, X: Union[np.ndarray, tf.data.Dataset], y: Optional[np.ndarray],
 			sample_weight: Optional[np.array] = None, pos_class_weight: Optional[float] = None,
 			n_epochs: Optional[int] = None,
 			show_progress: bool = False):
-		# preprocess Y: suppose input {0, 1}, but internally will use {-1, 1} labels instead
-		if not (set(y) == {0, 1}):
-			raise ValueError("Input labels must be in set {0,1}.")
-		used_y = y * 2 - 1
-		if sample_weight is not None:
-			self.sample_weight = sample_weight
-		if pos_class_weight is not None:
-			self.pos_class_weight = pos_class_weight
-		used_w = self._preprocess_sample_weights(self.sample_weight, self.pos_class_weight, used_y)
-		dataset = self.create_dataset(X, used_y, used_w)
-		self._fit(dataset, n_epochs=n_epochs, show_progress=show_progress)
+		if isinstance(X, np.ndarray):
+			# preprocess Y: suppose input {0, 1}, but internally will use {-1, 1} labels instead
+			if not (set(y) == {0, 1}):
+				raise ValueError("Input labels must be in set {0,1}.")
+			used_y = y * 2 - 1
+			if sample_weight is not None:
+				self.sample_weight = sample_weight
+			if pos_class_weight is not None:
+				self.pos_class_weight = pos_class_weight
+			used_w = self._preprocess_sample_weights(self.sample_weight, self.pos_class_weight, used_y)
+			dataset = self.create_dataset(X, used_y, used_w)
+			self._fit(dataset, n_epochs=n_epochs, show_progress=show_progress)
+		elif isinstance(X, tf.data.Dataset):
+			self._fit(X, n_epochs=n_epochs, show_progress=show_progress)
 
 	def predict(self, X, pred_batch_size=None):
 		"""Predict using the FM model
@@ -183,13 +186,17 @@ class TFFMRegressor(TFFMBaseModel):
 			log_dir=log_dir,
 			verbose=verbose)
 
-	def fit(self, X: np.ndarray, y: np.ndarray,
+	def fit(self, X: Union[np.ndarray, tf.data.Dataset], y: Optional[np.ndarray],
 			sample_weight: Optional[np.ndarray] = None,
 			n_epochs: Optional[int] = None,
 			show_progress: bool = False):
-		sample_weight = np.ones_like(y) if sample_weight is None else sample_weight
-		dataset = self.create_dataset(X, y, sample_weight)
-		self._fit(dataset, n_epochs=n_epochs, show_progress=show_progress)
+		if isinstance(X, np.ndarray):
+			sample_weight = np.ones_like(y) if sample_weight is None else sample_weight
+			assert y is not None, "y should be defined if X is an array"
+			dataset = self.create_dataset(X, y, sample_weight)
+			self._fit(dataset, n_epochs=n_epochs, show_progress=show_progress)
+		elif isinstance(X, tf.data.Dataset):
+			self._fit(X, n_epochs=n_epochs, show_progress=show_progress)
 
 	def predict(self, X: np.ndarray, pred_batch_size: int = None) -> np.ndarray:
 		"""Predict using the FM model
