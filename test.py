@@ -15,6 +15,8 @@ class TestFM(unittest.TestCase):
 
 		self.X = np.random.randn(n_samples, n_features)
 		self.y = np.random.binomial(1, 0.5, size=n_samples)
+		self.w = np.ones_like(self.y).astype(np.float32)
+		self.dataset = tf.data.Dataset.from_tensor_slices({"X": self.X.astype(np.float32), "y": self.y.astype(np.float32), "w": self.w}).batch(1000)
 
 	def classifier(self, use_diag):
 		model = TFFMClassifier(
@@ -40,11 +42,8 @@ class TestFM(unittest.TestCase):
 		)
 		return model
 
-	def decision_function_order_4(self, model):
-
-		X = self.X.astype(np.float32)
-
-		model.fit(X, self.y)
+	def decision_function_order_4(self, model, X, y):
+		model.fit(X, y)
 		b = model.intercept
 		w = model.weights
 
@@ -57,16 +56,26 @@ class TestFM(unittest.TestCase):
 		np.testing.assert_almost_equal(actual_np, desired, decimal=4)
 
 	def test_FM_classifier(self):
-		self.decision_function_order_4(self.classifier(use_diag=False))
+		X = self.X.astype(np.float32)
+		self.decision_function_order_4(self.classifier(use_diag=False), X, self.y)
 
 	def test_PN_classifier(self):
-		self.decision_function_order_4(self.classifier(use_diag=True))
+		X = self.X.astype(np.float32)
+		self.decision_function_order_4(self.classifier(use_diag=True), X, self.y)
 
 	def test_FM_regressor(self):
-		self.decision_function_order_4(self.regressor(use_diag=False))
+		X = self.X.astype(np.float32)
+		self.decision_function_order_4(self.regressor(use_diag=False), X, self.y)
 
 	def test_PN_regressor(self):
-		self.decision_function_order_4(self.regressor(use_diag=True))
+		X = self.X.astype(np.float32)
+		self.decision_function_order_4(self.regressor(use_diag=True), X, self.y)
+
+	def test_FM_classifier_dataset(self):
+		self.decision_function_order_4(self.classifier(use_diag=False), self.dataset, None)
+
+	def test_FM_regressor_dataset(self):
+		self.decision_function_order_4(self.regressor(use_diag=False), self.dataset, None)
 
 	def bruteforce_inference_one_interaction(self, X, w, order, use_diag):
 		n_obj, n_feat = X.shape

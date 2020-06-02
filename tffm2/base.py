@@ -160,7 +160,7 @@ class TFFMBaseModel(six.with_metaclass(ABCMeta, BaseEstimator)):
 			pred_batch_size = self.batch_size
 
 		if isinstance(X, tf.data.Dataset):
-			assert isinstance(X.element_spec, tuple), "Expecting a tuple for the dataset"
+			assert isinstance(X.element_spec, dict), "Expecting a dictionary for the dataset"
 			dataset = X
 		elif isinstance(X, np.ndarray):
 			dataset = tf.data.Dataset.from_tensor_slices({"X": X})

@@ -80,7 +80,7 @@ class TFFMClassifier(TFFMBaseModel):
 
 		return used_w
 
-	def fit(self, X: Union[np.ndarray, tf.data.Dataset], y: Optional[np.ndarray],
+	def fit(self, X: Union[np.ndarray, tf.data.Dataset], y: Optional[np.ndarray] = None,
 			sample_weight: Optional[np.array] = None, pos_class_weight: Optional[float] = None,
 			n_epochs: Optional[int] = None,
 			show_progress: bool = False):
