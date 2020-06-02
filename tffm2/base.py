@@ -92,6 +92,7 @@ class TFFMBaseModel(six.with_metaclass(ABCMeta, BaseEstimator)):
 				 use_diag: bool,
 				 reweight_reg: bool,
 				 seed: Optional[int],
+				 n_features: Optional[int],
 				 n_epochs: int,
 				 batch_size: Optional[int],
 				 shuffle_size: int,
@@ -107,7 +108,8 @@ class TFFMBaseModel(six.with_metaclass(ABCMeta, BaseEstimator)):
 							 init_std=init_std,
 							 use_diag=use_diag,
 							 reweight_reg=reweight_reg,
-							 seed=seed)
+							 seed=seed,
+							 n_features=n_features)
 
 		self.batch_size = batch_size
 		self.shuffle_size = shuffle_size

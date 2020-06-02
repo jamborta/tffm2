@@ -28,6 +28,7 @@ class TFFMClassifier(TFFMBaseModel):
 				 use_diag: bool = False,
 				 reweight_reg: bool = False,
 				 seed: Optional[int] = None,
+				 n_features: Optional[int] = None,
 				 n_epochs: int = 100,
 				 batch_size: Optional[int] = None,
 				 shuffle_size: int = 1000,
@@ -52,6 +53,7 @@ class TFFMClassifier(TFFMBaseModel):
 			use_diag=use_diag,
 			reweight_reg=reweight_reg,
 			seed=seed,
+			n_features=n_features,
 			n_epochs=n_epochs,
 			batch_size=batch_size,
 			shuffle_size=shuffle_size,
@@ -161,6 +163,7 @@ class TFFMRegressor(TFFMBaseModel):
 				 use_diag: bool = False,
 				 reweight_reg: bool = False,
 				 seed: Optional[int] = None,
+				 n_features: Optional[int] = None,
 				 n_epochs: int = 100,
 				 batch_size: Optional[int] = None,
 				 shuffle_size: int = 1000,
@@ -179,6 +182,7 @@ class TFFMRegressor(TFFMBaseModel):
 			use_diag=use_diag,
 			reweight_reg=reweight_reg,
 			seed=seed,
+			n_features=n_features,
 			n_epochs=n_epochs,
 			batch_size=batch_size,
 			shuffle_size=shuffle_size,
@@ -186,7 +190,7 @@ class TFFMRegressor(TFFMBaseModel):
 			log_dir=log_dir,
 			verbose=verbose)
 
-	def fit(self, X: Union[np.ndarray, tf.data.Dataset], y: Optional[np.ndarray],
+	def fit(self, X: Union[np.ndarray, tf.data.Dataset], y: Optional[np.ndarray] = None,
 			sample_weight: Optional[np.ndarray] = None,
 			n_epochs: Optional[int] = None,
 			show_progress: bool = False):

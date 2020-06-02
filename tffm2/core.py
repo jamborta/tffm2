@@ -99,7 +99,8 @@ class TFFMCore(object):
 				 init_std: float,
 				 use_diag: bool,
 				 reweight_reg: bool,
-				 seed: Optional[int]):
+				 seed: Optional[int],
+				 n_features: Optional[int]):
 		self.order = order
 		self.rank = rank
 		self.use_diag = use_diag
@@ -108,7 +109,7 @@ class TFFMCore(object):
 		self.reweight_reg = reweight_reg
 		self.init_std = init_std
 		self.seed = seed
-		self.n_features = None
+		self.n_features = n_features
 		self.graph = None
 		self.loss_function = loss_function
 
