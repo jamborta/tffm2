@@ -52,7 +52,9 @@ class TestFM(unittest.TestCase):
 
 		actual = model.decision_function(X)
 
-		np.testing.assert_almost_equal(actual, desired, decimal=4)
+		actual_np = np.reshape(list(actual.map(lambda l: l["pred"]))[0], [-1])
+
+		np.testing.assert_almost_equal(actual_np, desired, decimal=4)
 
 	def test_FM_classifier(self):
 		self.decision_function_order_4(self.classifier(use_diag=False))

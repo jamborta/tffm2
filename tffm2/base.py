@@ -155,21 +155,24 @@ class TFFMBaseModel(six.with_metaclass(ABCMeta, BaseEstimator)):
 					if self.verbose > 1:
 						print('Epoch %2d: loss=%2.3f' % (epoch, current_loss))
 
-	def decision_function(self, X: np.ndarray, pred_batch_size: int = None) -> np.ndarray:
-		output = []
+	def decision_function(self, X: Union[tf.data.Dataset, np.ndarray], pred_batch_size: Optional[int] = None) -> tf.data.Dataset:
 		if pred_batch_size is None:
 			pred_batch_size = self.batch_size
 
-		dataset = tf.data.Dataset.from_tensor_slices({"X": X})
-		if pred_batch_size:
-			dataset = dataset.batch(pred_batch_size)
+		if isinstance(X, tf.data.Dataset):
+			assert isinstance(X.element_spec, tuple), "Expecting a tuple for the dataset"
+			dataset = X
+		elif isinstance(X, np.ndarray):
+			dataset = tf.data.Dataset.from_tensor_slices({"X": X})
+			if pred_batch_size:
+				dataset = dataset.batch(pred_batch_size)
+			else:
+				dataset = dataset.batch(X.shape[0])
 		else:
-			dataset = dataset.batch(X.shape[0])
-		for d in dataset:
-			output.append(self.core(d["X"]))
-		distances = np.concatenate(output).reshape(-1)
-		# WARNING: be careful with this reshape in case of multiclass
-		return distances
+			Exception("Unsupported input type.")
+
+		res = dataset.map(lambda l: {**l, "pred": self.core(l["X"])})
+		return res
 
 	def create_dataset(self, X: np.ndarray, y: np.ndarray, w: np.ndarray) -> tf.data.Dataset:
 		dataset = tf.data.Dataset.from_tensor_slices(

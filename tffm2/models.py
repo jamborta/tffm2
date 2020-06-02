@@ -99,7 +99,7 @@ class TFFMClassifier(TFFMBaseModel):
 		elif isinstance(X, tf.data.Dataset):
 			self._fit(X, n_epochs=n_epochs, show_progress=show_progress)
 
-	def predict(self, X, pred_batch_size=None):
+	def predict(self, X: Union[tf.data.Dataset, np.ndarray], pred_batch_size: Optional[int] = None):
 		"""Predict using the FM model
 
 		Parameters
@@ -117,7 +117,7 @@ class TFFMClassifier(TFFMBaseModel):
 		predictions = (raw_output > 0).astype(int)
 		return predictions
 
-	def predict_proba(self, X, pred_batch_size=None):
+	def predict_proba(self, X: Union[tf.data.Dataset, np.ndarray], pred_batch_size: Optional[int] = None):
 		"""Probability estimates.
 
 		The returned estimates for all 2 classes are ordered by the
@@ -198,7 +198,7 @@ class TFFMRegressor(TFFMBaseModel):
 		elif isinstance(X, tf.data.Dataset):
 			self._fit(X, n_epochs=n_epochs, show_progress=show_progress)
 
-	def predict(self, X: np.ndarray, pred_batch_size: int = None) -> np.ndarray:
+	def predict(self, X: Union[tf.data.Dataset, np.ndarray], pred_batch_size: int = None) -> np.ndarray:
 		"""Predict using the FM model
 
 		Parameters
