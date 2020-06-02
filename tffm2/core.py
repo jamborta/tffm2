@@ -91,7 +91,7 @@ class TFFMCore(object):
 	"""
 
 	def __init__(self,
-				 loss_function: Callable[[tf.Tensor, tf.Tensor], tf.Operation],
+				 loss_function: Callable[[tf.Tensor, tf.Tensor], tf.Tensor],
 				 order: int,
 				 rank: int,
 				 optimizer: tf.optimizers,
@@ -170,9 +170,9 @@ class TFFMCore(object):
 			tf.summary.scalar('regularization_penalty', self.regularization)
 		return y_pred
 
-	def loss(self, y_pred: tf.Tensor, y_true: tf.Tensor, w: tf.Tensor):
+	def loss(self, y_true: tf.Tensor, y_pred: tf.Tensor, w: tf.Tensor):
 		with tf.name_scope('loss'):
-			loss = self.loss_function(y_pred, y_true) * w
+			loss = self.loss_function(y_true, y_pred) * w
 			reduced_loss = tf.reduce_mean(loss)
 			tf.summary.scalar('loss', reduced_loss)
 		target = reduced_loss + self.reg * self.regularization
@@ -182,9 +182,9 @@ class TFFMCore(object):
 			name='target')
 		return checked_target
 
-	def train(self, inputs, outputs, w):
+	def train(self, X, y, w):
 		with tf.GradientTape() as t:
-			current_loss = self.loss(self(inputs), outputs, w)
+			current_loss = self.loss(y, self(X), w)
 		vars = self.w + [self.b]
 		grads = t.gradient(current_loss, vars)
 		self.optimizer.apply_gradients(zip(grads, vars))

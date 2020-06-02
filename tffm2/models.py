@@ -2,7 +2,7 @@
 
 import numpy as np  # type: ignore
 from .base import TFFMBaseModel
-from .utils import loss_logistic, loss_mse
+from .utils import loss_logistic, loss_mse, loss_bpr
 import tensorflow as tf  # type: ignore
 from typing import Union, Optional, Callable
 
@@ -19,7 +19,7 @@ class TFFMClassifier(TFFMBaseModel):
 	"""
 
 	def __init__(self,
-				 loss_function: Callable[[tf.Tensor, tf.Tensor], tf.Operation] = None,
+				 loss_function: Callable[[tf.Tensor, tf.Tensor], tf.Tensor] = None,
 				 order: int = 2,
 				 rank: int = 2,
 				 optimizer: tf.optimizers = tf.optimizers.Adam(learning_rate=0.01),
@@ -154,7 +154,7 @@ class TFFMRegressor(TFFMBaseModel):
 	See TFFMBaseModel and TFFMCore docs for details about parameters.
 	"""
 
-	def __init__(self, loss_function: Callable[[tf.Tensor, tf.Tensor], tf.Operation] = None,
+	def __init__(self, loss_function: Callable[[tf.Tensor, tf.Tensor], tf.Tensor] = None,
 				 order: int = 2,
 				 rank: int = 2,
 				 optimizer: tf.optimizers = tf.optimizers.Adam(learning_rate=0.01),

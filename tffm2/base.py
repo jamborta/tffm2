@@ -83,7 +83,7 @@ class TFFMBaseModel(six.with_metaclass(ABCMeta, BaseEstimator)):
 	"""
 
 	def __init__(self,
-				 loss_function: Callable[[tf.Tensor, tf.Tensor], tf.Operation],
+				 loss_function: Callable[[tf.Tensor, tf.Tensor], tf.Tensor],
 				 order: int,
 				 rank: int,
 				 optimizer: tf.optimizers,
@@ -123,7 +123,11 @@ class TFFMBaseModel(six.with_metaclass(ABCMeta, BaseEstimator)):
 
 	def _fit(self, dataset: tf.data.Dataset, n_epochs: int = None, show_progress: bool = False):
 		if self.core.n_features is None:
-			self.core.set_num_features(dataset.element_spec['X'].shape[1])
+			n_features = dataset.element_spec['X'].shape[1]
+			if n_features:
+				self.core.set_num_features(n_features)
+			else:
+				raise Exception("Cannot obtain the number of features from the dataset.")
 		self.core.init_weights()
 		if n_epochs is None:
 			n_epochs = self.n_epochs
