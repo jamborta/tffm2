@@ -153,7 +153,7 @@ class TFFMBaseModel(six.with_metaclass(ABCMeta, BaseEstimator)):
 																		   self.core.step.numpy(), epoch))
 				self.core.train(d["X"], d["y"], d["w"])
 				if int(self.core.step) % 100 == 0:
-					current_loss = self.core.loss(self.core(d["X"]), d["y"], d["w"])
+					current_loss = self.core.loss(d["y"], self.core(d["X"]), d["w"])
 					if self.checkpoint_dir:
 						save_path = manager.save()
 						if self.verbose > 1:
@@ -161,7 +161,8 @@ class TFFMBaseModel(six.with_metaclass(ABCMeta, BaseEstimator)):
 					if self.verbose > 1:
 						print('Epoch %2d: loss=%2.3f' % (epoch, current_loss))
 
-	def decision_function(self, X: Union[tf.data.Dataset, np.ndarray], pred_batch_size: Optional[int] = None) -> tf.data.Dataset:
+	def decision_function(self, X: Union[tf.data.Dataset, np.ndarray],
+						  pred_batch_size: Optional[int] = None) -> tf.data.Dataset:
 		if pred_batch_size is None:
 			pred_batch_size = self.batch_size
 
@@ -177,7 +178,7 @@ class TFFMBaseModel(six.with_metaclass(ABCMeta, BaseEstimator)):
 		else:
 			Exception("Unsupported input type.")
 
-		res = dataset.map(lambda l: {**l, "pred": self.core(l["X"])})
+		res = dataset.map(lambda l: {**l, "pred_raw": self.core(l["X"])})
 		return res
 
 	def create_dataset(self, X: np.ndarray, y: np.ndarray, w: np.ndarray) -> tf.data.Dataset:

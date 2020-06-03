@@ -51,7 +51,7 @@ class TestFM(unittest.TestCase):
 
 		actual = model.decision_function(X)
 
-		actual_np = np.reshape(list(actual.map(lambda l: l["pred"]))[0], [-1])
+		actual_np = np.reshape(list(actual.map(lambda l: l["pred_raw"]))[0], [-1])
 
 		np.testing.assert_almost_equal(actual_np, desired, decimal=4)
 

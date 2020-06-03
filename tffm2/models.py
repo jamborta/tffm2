@@ -101,7 +101,7 @@ class TFFMClassifier(TFFMBaseModel):
 		elif isinstance(X, tf.data.Dataset):
 			self._fit(X, n_epochs=n_epochs, show_progress=show_progress)
 
-	def predict(self, X: Union[tf.data.Dataset, np.ndarray], pred_batch_size: Optional[int] = None):
+	def predict(self, X: Union[tf.data.Dataset, np.ndarray], pred_batch_size: Optional[int] = None) -> tf.data.Dataset:
 		"""Predict using the FM model
 
 		Parameters
@@ -115,9 +115,9 @@ class TFFMClassifier(TFFMBaseModel):
 		predictions : array, shape = (n_samples,)
 			Returns predicted values.
 		"""
-		raw_output = self.decision_function(X, pred_batch_size)
-		predictions = (raw_output > 0).astype(int)
-		return predictions
+
+		raw_output = self.decision_function(X, pred_batch_size).map(lambda l: {**l, "pred": tf.cast(l["pred_raw"] > 0, tf.int8)})
+		return raw_output
 
 	def predict_proba(self, X: Union[tf.data.Dataset, np.ndarray], pred_batch_size: Optional[int] = None):
 		"""Probability estimates.
@@ -135,11 +135,9 @@ class TFFMClassifier(TFFMBaseModel):
 		probs : array-like, shape = [n_samples, 2]
 			Returns the probability of the sample for each class in the model.
 		"""
-		outputs = self.decision_function(X, pred_batch_size)
-		probs_positive = tf.sigmoid(outputs)
-		probs_negative = 1 - probs_positive
-		probs = np.vstack((probs_negative.T, probs_positive.T))
-		return probs.T
+		raw_output = self.decision_function(X, pred_batch_size).map(lambda l: {**l, "pred_pos": tf.sigmoid(l["pred_raw"]),
+																			   "pred_neg": 1 - tf.sigmoid(l["pred_raw"])})
+		return raw_output
 
 
 class TFFMRegressor(TFFMBaseModel):
