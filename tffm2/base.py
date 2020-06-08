@@ -5,7 +5,7 @@ from abc import ABCMeta, abstractmethod
 import six
 from tqdm import tqdm  # type: ignore
 import numpy as np  # type: ignore
-from typing import Union, Callable, Optional
+from typing import Union, Callable, Optional, Iterable
 
 
 class TFFMBaseModel(six.with_metaclass(ABCMeta, BaseEstimator)):
@@ -98,6 +98,7 @@ class TFFMBaseModel(six.with_metaclass(ABCMeta, BaseEstimator)):
 				 shuffle_size: int,
 				 checkpoint_dir: Optional[str],
 				 log_dir: Optional[str],
+				 eval_step: int,
 				 verbose: int):
 
 		self.core = TFFMCore(loss_function=loss_function,
@@ -120,10 +121,13 @@ class TFFMBaseModel(six.with_metaclass(ABCMeta, BaseEstimator)):
 		self.verbose = verbose
 		self.steps = 0
 		self.seed = seed
+		self.eval_step = eval_step
 
-	def _fit(self, dataset: tf.data.Dataset, n_epochs: int = None, show_progress: bool = False):
+	def _fit(self, dataset_train: tf.data.Dataset,
+			 dataset_val: Optional[tf.data.Dataset] = None,
+			 n_epochs: int = None, show_progress: bool = False):
 		if self.core.n_features is None:
-			n_features = dataset.element_spec['X'].shape[1]
+			n_features = dataset_train.element_spec['X'].shape[1]
 			if n_features:
 				self.core.set_num_features(n_features)
 			else:
@@ -146,23 +150,31 @@ class TFFMBaseModel(six.with_metaclass(ABCMeta, BaseEstimator)):
 				print("Initializing from scratch.")
 
 		current_loss = None
+		validation_loss = None
+		if dataset_val:
+			dataset_val_it = iter(dataset_val)
 		pbar = tqdm(range(n_epochs), disable=(not show_progress))
 		for epoch in pbar:
-			for d in dataset:
-				pbar.set_description("Loss: %2.3f, step: %s, epoch: %s" % ((current_loss.numpy() if current_loss else float('inf')),
-																		   self.core.step.numpy(), epoch))
+			for d in dataset_train:
+				pbar.set_description("Training loss: %2.3f, Validation loss: %2.3f, step: %s, epoch: %s" %
+									 ((current_loss.numpy() if current_loss else float('inf')),
+									  (validation_loss.numpy() if current_loss else float('inf')),
+									  self.core.step.numpy(), epoch))
 				self.core.train(d["X"], d["y"], d["w"])
-				if int(self.core.step) % 100 == 0:
+				if int(self.core.step) % self.eval_step == 0:
 					current_loss = self.core.loss(d["y"], self.core(d["X"]), d["w"])
+					if dataset_val:
+						dv = next(dataset_val_it)
+						validation_loss = self.core.loss(dv["y"], self.core(dv["X"]), dv["w"])
 					if self.checkpoint_dir:
 						save_path = manager.save()
 						if self.verbose > 1:
 							print("Saved checkpoint for step {}: {}".format(int(ckpt.step), save_path))
 					if self.verbose > 1:
-						print('Epoch %2d: loss=%2.3f' % (epoch, current_loss))
+						print('Epoch %2d: training loss=%2.3f, validation loss=%2.3f' % (epoch, current_loss, validation_loss))
 
 	def decision_function(self, X: Union[tf.data.Dataset, np.ndarray],
-						  pred_batch_size: Optional[int] = None) -> tf.data.Dataset:
+						  pred_batch_size: Optional[int] = None) -> Iterable:
 		if pred_batch_size is None:
 			pred_batch_size = self.batch_size
 
@@ -178,16 +190,19 @@ class TFFMBaseModel(six.with_metaclass(ABCMeta, BaseEstimator)):
 		else:
 			Exception("Unsupported input type.")
 
-		res = dataset.map(lambda l: {**l, "pred_raw": self.core(l["X"])})
-		return res
+		# Return an iterator (not a dataset) to be able to run predictions of GPUs
+		for d in dataset:
+			yield {**d, "pred_raw": self.core(d["X"])}
 
-	def create_dataset(self, X: np.ndarray, y: np.ndarray, w: np.ndarray) -> tf.data.Dataset:
+	def create_dataset(self, X: np.ndarray, y: np.ndarray, w: np.ndarray, repeat: bool = False) -> tf.data.Dataset:
 		dataset = tf.data.Dataset.from_tensor_slices(
 			{"X": X, "y": y.astype(np.float32), "w": w.astype(np.float32)}).shuffle(self.shuffle_size)
 		if self.batch_size:
 			dataset = dataset.batch(self.batch_size)
 		else:
 			dataset = dataset.batch(X.shape[0])
+		if repeat:
+			dataset = dataset.repeat()
 		return dataset
 
 	@abstractmethod
