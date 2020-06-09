@@ -21,7 +21,7 @@ class TFFMCore(object):
 		Number of factors in low-rank appoximation.
 		This value is shared across different orders of interaction.
 
-	loss_function : function: (tf.Tensor, tf.Tensro) -> tf.Tensor, default: None
+	loss_function : function: (tf.Tensor, tf.Tensor) -> tf.Tensor, default: None
 		Loss function.
 		Take 2 tf.Tensor: outputs and targets and should return tf.Tensor of loss
 		See examples: .utils.loss_mse, .utils.loss_logistic
@@ -51,21 +51,10 @@ class TFFMCore(object):
 
 	Attributes
 	----------
-	graph : tf.Graph or None
-		Initialized computational graph or None
-
-	trainer : tf.Op
-		TensorFlow operation node to perform learning on single batch
 
 	n_features : int
 		Number of features used in this dataset.
 		Inferred during the first call of fit() method.
-
-	saver : tf.Op
-		tf.train.Saver instance, connected to graph
-
-	summary_op : tf.Op
-		tf.merge_all_summaries instance for export logging
 
 	b : tf.Variable, shape: [1]
 		Bias term.
@@ -79,9 +68,6 @@ class TFFMCore(object):
 	-----
 	Parameter `rank` is shared across all orders of interactions (except bias and
 	linear parts).
-	tf.sparse_reorder doesn't requied since COO format is lexigraphical ordered.
-	This implementation uses a generalized approach from referenced paper along
-	with caching.
 
 	References
 	----------
@@ -113,10 +99,10 @@ class TFFMCore(object):
 		self.graph = None
 		self.loss_function = loss_function
 
-	def set_num_features(self, n_features):
+	def set_num_features(self, n_features: int) -> None:
 		self.n_features = n_features
 
-	def init_weights(self):
+	def init_weights(self) -> None:
 		self.w = [None] * self.order
 		for i in range(1, self.order + 1):
 			r = self.rank
