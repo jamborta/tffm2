@@ -13,53 +13,51 @@ class TFFMCore(object):
 
 	Parameters
 	----------
-	order : int, default: 2
-		Order of corresponding polynomial model.
-		All interaction from bias and linear to order will be included.
-
-	rank : int, default: 5
-		Number of factors in low-rank appoximation.
-		This value is shared across different orders of interaction.
-
-	loss_function : function: (tf.Tensor, tf.Tensor) -> tf.Tensor, default: None
+	loss_function : loss_function: Callable[[tf.Tensor, tf.Tensor], tf.Tensor]
 		Loss function.
 		Take 2 tf.Tensor: outputs and targets and should return tf.Tensor of loss
 		See examples: .utils.loss_mse, .utils.loss_logistic
 
-	optimizer : tf.train.Optimizer, default: Adam(learning_rate=0.01)
+	order : int
+		Order of corresponding polynomial model.
+		All interaction from bias and linear to order will be included.
+
+	rank : int
+		Number of factors in low-rank appoximation.
+		This value is shared across different orders of interaction.
+
+	optimizer : tf.train.Optimizer
 		Optimization method used for training
 
-	reg : float, default: 0
+	reg : float
 		Strength of L2 regularization
 
-	use_diag : bool, default: False
+	init_std : float
+		Amplitude of random initialization
+
+	use_diag : bool
 		Use diagonal elements of weights matrix or not.
 		In the other words, should terms like x^2 be included.
 		Ofter reffered as a "Polynomial Network".
 		Default value (False) corresponds to FM.
 
-	reweight_reg : bool, default: False
+	reweight_reg : bool
 		Use frequency of features as weights for regularization or not.
 		Should be usefull for very sparse data and/or small batches
 
-	init_std : float, default: 0.01
-		Amplitude of random initialization
-
-	seed : int or None, default: None
+	seed : Optional[int]
 		Random seed used at graph creating time
 
+	n_features : Optional[int]
+		Number of features used in this dataset.
+		if not set, it is inferred during the first call of fit() method.
 
 	Attributes
 	----------
-
-	n_features : int
-		Number of features used in this dataset.
-		Inferred during the first call of fit() method.
-
-	b : tf.Variable, shape: [1]
+	b : tf.Variable
 		Bias term.
 
-	w : array of tf.Variable, shape: [order]
+	w : List[tf.Variable]
 		Array of underlying representations.
 		First element will have shape [n_features, 1],
 		all the others -- [n_features, rank].

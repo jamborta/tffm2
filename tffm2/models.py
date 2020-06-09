@@ -109,20 +109,19 @@ class TFFMClassifier(TFFMBaseModel):
 			self._fit(X_train, X_val, n_epochs=n_epochs, show_progress=show_progress)
 
 	def predict(self, X: Union[tf.data.Dataset, np.ndarray], pred_batch_size: Optional[int] = None) -> Iterable:
-		"""Predict using the FM model
+		"""
 
 		Parameters
 		----------
-		X : {numpy.array, scipy.sparse.csr_matrix}, shape = (n_samples, n_features)
-			Samples.
-		pred_batch_size : int batch size for prediction (default None)
+		X: Union[tf.data.Dataset, np.ndarray]
+			Samples
+		pred_batch_size: Optional[int]
+			Batch size for prediction
 
 		Returns
 		-------
-		predictions : array, shape = (n_samples,)
-			Returns predicted values.
+		Returns predicted values.
 		"""
-
 		raw_output = self.decision_function(X, pred_batch_size)
 		for r in raw_output:
 			yield {**r, "pred": tf.cast(r["pred_raw"] > 0, tf.int8)}
@@ -135,12 +134,13 @@ class TFFMClassifier(TFFMBaseModel):
 
 		Parameters
 		----------
-		X : array-like, shape = [n_samples, n_features]
-		pred_batch_size : int batch size for prediction (default None)
-
+		X: Union[tf.data.Dataset, np.ndarray]
+			Samples
+		pred_batch_size : Optional[int]
+			Batch size for prediction
 		Returns
 		-------
-		probs : array-like, shape = [n_samples, 2]
+		probs: Optional[int]
 			Returns the probability of the sample for each class in the model.
 		"""
 		raw_output = self.decision_function(X, pred_batch_size)
@@ -222,15 +222,15 @@ class TFFMRegressor(TFFMBaseModel):
 		elif isinstance(X_train, tf.data.Dataset):
 			self._fit(X_train, X_val, n_epochs=n_epochs, show_progress=show_progress)
 
-	def predict(self, X: Union[tf.data.Dataset, np.ndarray], pred_batch_size: int = None) -> Iterable:
+	def predict(self, X: Union[tf.data.Dataset, np.ndarray], pred_batch_size: Optional[int] = None) -> Iterable:
 		"""Predict using the FM model
 
 		Parameters
 		----------
-		X : {numpy.array, scipy.sparse.csr_matrix}, shape = (n_samples, n_features)
+		X : Union[tf.data.Dataset, np.ndarray]
 			Samples.
-		pred_batch_size : int batch size for prediction (default None)
-
+		pred_batch_size : Optional[int]
+			Batch size for prediction
 		Returns
 		-------
 		predictions : array, shape = (n_samples,)
