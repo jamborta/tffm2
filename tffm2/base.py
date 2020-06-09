@@ -32,34 +32,15 @@ class TFFMBaseModel(six.with_metaclass(ABCMeta, BaseEstimator)):
 		Default number of epoches.
 		It can be overrived by explicitly provided value in fit() method.
 
-	log_dir : str or None, default: None
-		Path for storing model stats during training. Used only if is not None.
-		WARNING: If such directory already exists, it will be removed!
-		You can use TensorBoard to visualize the stats:
-		`tensorboard --logdir={log_dir}`
-
-	session_config : tf.ConfigProto or None, default: None
-		Additional setting passed to tf.Session object.
-		Useful for CPU/GPU switching, setting number of threads and so on,
-		`tf.ConfigProto(device_count = {'GPU': 0})` will disable GPU (if enabled)
-
 	verbose : int, default: 0
 		Level of verbosity.
 		Set 1 for tensorboard info only and 2 for additional stats every epoch.
-
-	kwargs : dict, default: {}
-		Arguments for TFFMCore constructor.
-		See TFFMCore's doc for details.
 
 	Attributes
 	----------
 	core : TFFMCore or None
 		Computational graph with internal utils.
 		Will be initialized during first call .fit()
-
-	session : tf.Session or None
-		Current execution session or None.
-		Should be explicitly terminated via calling destroy() method.
 
 	steps : int
 		Counter of passed lerning epochs, used as step number for writing stats
@@ -97,6 +78,7 @@ class TFFMBaseModel(six.with_metaclass(ABCMeta, BaseEstimator)):
 				 batch_size: Optional[int],
 				 shuffle_size: int,
 				 checkpoint_dir: Optional[str],
+				 summary_dir: Optional[str],
 				 log_dir: Optional[str],
 				 eval_step: int,
 				 verbose: int):
@@ -123,6 +105,9 @@ class TFFMBaseModel(six.with_metaclass(ABCMeta, BaseEstimator)):
 		self.seed = seed
 		self.eval_step = eval_step
 
+		if summary_dir:
+			self.writer = tf.summary.create_file_writer(summary_dir)
+
 	def _fit(self, dataset_train: tf.data.Dataset,
 			 dataset_val: Optional[tf.data.Dataset] = None,
 			 n_epochs: int = None, show_progress: bool = False):
@@ -140,12 +125,12 @@ class TFFMBaseModel(six.with_metaclass(ABCMeta, BaseEstimator)):
 			ckpt = tf.train.Checkpoint(step=self.core.step, optimizer=self.core.optimizer, w=self.core.w, b=self.core.b)
 			manager = tf.train.CheckpointManager(ckpt, self.checkpoint_dir, max_to_keep=3)
 			ckpt.restore(manager.latest_checkpoint)
-			if self.verbose > 1:
-				inside_checkpoint = tf.train.list_variables(manager.latest_checkpoint)
-				inside_checkpoint_format = "\n".join([f"{a},{b}" for a, b in inside_checkpoint])
-				print(f"Checkpoint variables: \n {inside_checkpoint_format}")
 			if manager.latest_checkpoint:
 				print("Restored from {}".format(manager.latest_checkpoint))
+				if self.verbose > 1:
+					inside_checkpoint = tf.train.list_variables(manager.latest_checkpoint)
+					inside_checkpoint_format = "\n".join([f"{a},{b}" for a, b in inside_checkpoint])
+					print(f"Checkpoint variables: \n {inside_checkpoint_format}")
 			else:
 				print("Initializing from scratch.")
 

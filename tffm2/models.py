@@ -33,6 +33,7 @@ class TFFMClassifier(TFFMBaseModel):
 				 batch_size: Optional[int] = None,
 				 shuffle_size: int = 1000,
 				 checkpoint_dir: Optional[str] = None,
+				 summary_dir: Optional[str] = None,
 				 log_dir: Optional[str] = None,
 				 verbose: int = 0,
 				 sample_weight: Union[None, str, np.ndarray] = None,
@@ -59,6 +60,7 @@ class TFFMClassifier(TFFMBaseModel):
 			batch_size=batch_size,
 			shuffle_size=shuffle_size,
 			checkpoint_dir=checkpoint_dir,
+			summary_dir=summary_dir,
 			log_dir=log_dir,
 			verbose=verbose,
 			eval_step=eval_step
@@ -174,6 +176,7 @@ class TFFMRegressor(TFFMBaseModel):
 				 batch_size: Optional[int] = None,
 				 shuffle_size: int = 1000,
 				 checkpoint_dir: Optional[str] = None,
+				 summary_dir: Optional[str] = None,
 				 log_dir: Optional[str] = None,
 				 verbose: int = 0,
 				 eval_step: int = 100
@@ -195,6 +198,7 @@ class TFFMRegressor(TFFMBaseModel):
 			batch_size=batch_size,
 			shuffle_size=shuffle_size,
 			checkpoint_dir=checkpoint_dir,
+			summary_dir=summary_dir,
 			log_dir=log_dir,
 			verbose=verbose,
 			eval_step=eval_step

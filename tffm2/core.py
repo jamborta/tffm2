@@ -109,9 +109,11 @@ class TFFMCore(object):
 			rnd_weights = tf.random.uniform([self.n_features, r], -self.init_std, self.init_std)
 			self.w[i - 1] = tf.Variable(rnd_weights, trainable=True, name='embedding_' + str(i))
 		self.b = tf.Variable(self.init_std, trainable=True, name='bias')
-		self.step = tf.Variable(1, trainable=False, name='step')
+		self.step = tf.Variable(1, name='step')
+		self.regularization = tf.Variable(0.0, name='regularization')
 		tf.summary.scalar('bias', self.b)
 
+	@tf.function
 	def __call__(self, train_x: tf.Tensor) -> tf.Tensor:
 		with tf.name_scope('linear_part'):
 			contribution = tf.matmul(train_x, self.w[0])
@@ -134,31 +136,30 @@ class TFFMCore(object):
 							product_of_pows *= tf.pow(pmm, out_pows[pow_idx])
 						dot -= coef * product_of_pows
 					contribution = tf.reshape(tf.reduce_sum(dot, [1]), [-1, 1])
-					contribution /= float(math.factorial(i))
-			y_pred += contribution
+					contribution = contribution / float(math.factorial(i))
+			y_pred = y_pred + contribution
 
 		with tf.name_scope('regularization'):
-			self.regularization = 0
 			with tf.name_scope('reweights'):
 				if self.reweight_reg:
 					counts = tf.math.count_nonzero(train_x, axis=0, keepdims=True)
 					sqrt_counts = tf.transpose(tf.sqrt(tf.cast(counts, np.float32)))
 				else:
 					sqrt_counts = tf.ones_like(self.w[0])
-				self.reweights = sqrt_counts / tf.reduce_sum(sqrt_counts)
+				reweights = sqrt_counts / tf.reduce_sum(sqrt_counts)
 			for order in range(1, self.order + 1):
 				node_name = 'regularization_penalty_' + str(order)
-				norm = tf.reduce_mean(tf.pow(self.w[order - 1] * self.reweights, 2), name=node_name)
+				norm = tf.reduce_mean(tf.pow(self.w[order - 1] * reweights, 2), name=node_name)
 				tf.summary.scalar('penalty_W_{}'.format(order), norm)
-				self.regularization += norm
+				self.regularization.assign_add(norm)
 			tf.summary.scalar('regularization_penalty', self.regularization)
 		return y_pred
 
+	@tf.function
 	def loss(self, y_true: tf.Tensor, y_pred: tf.Tensor, w: tf.Tensor):
 		with tf.name_scope('loss'):
 			loss = self.loss_function(y_true, y_pred) * w
 			reduced_loss = tf.reduce_mean(loss)
-			tf.summary.scalar('loss', reduced_loss)
 		target = reduced_loss + self.reg * self.regularization
 		checked_target = tf.debugging.assert_all_finite(
 			target,
@@ -172,4 +173,4 @@ class TFFMCore(object):
 		vars = self.w + [self.b]
 		grads = t.gradient(current_loss, vars)
 		self.optimizer.apply_gradients(zip(grads, vars))
-		self.step = self.step + 1
+		self.step.assign_add(1)
