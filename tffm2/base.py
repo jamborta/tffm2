@@ -3,6 +3,7 @@ from .core import TFFMCore
 from sklearn.base import BaseEstimator  # type: ignore
 from abc import ABCMeta, abstractmethod
 import six
+import os
 from tqdm import tqdm  # type: ignore
 import numpy as np  # type: ignore
 from typing import Union, Callable, Optional, Iterable
@@ -78,10 +79,13 @@ class TFFMBaseModel(six.with_metaclass(ABCMeta, BaseEstimator)):
 				 batch_size: Optional[int],
 				 shuffle_size: int,
 				 checkpoint_dir: Optional[str],
-				 summary_dir: Optional[str],
+				 summary_dir: str,
 				 log_dir: Optional[str],
 				 eval_step: int,
 				 verbose: int):
+
+		self.train_writer = tf.summary.create_file_writer(os.path.join(summary_dir, "train"))
+		self.validation_writer = tf.summary.create_file_writer(os.path.join(summary_dir, "validation"))
 
 		self.core = TFFMCore(loss_function=loss_function,
 							 order=order,
@@ -105,9 +109,6 @@ class TFFMBaseModel(six.with_metaclass(ABCMeta, BaseEstimator)):
 		self.seed = seed
 		self.eval_step = eval_step
 
-		if summary_dir:
-			self.writer = tf.summary.create_file_writer(summary_dir)
-
 	def _fit(self, dataset_train: tf.data.Dataset,
 			 dataset_val: Optional[tf.data.Dataset] = None,
 			 n_epochs: int = None, show_progress: bool = False):
@@ -122,7 +123,8 @@ class TFFMBaseModel(six.with_metaclass(ABCMeta, BaseEstimator)):
 			n_epochs = self.n_epochs
 
 		if self.checkpoint_dir:
-			ckpt = tf.train.Checkpoint(step=self.core.step, optimizer=self.core.optimizer, w=self.core.w, b=self.core.b)
+			ckpt = tf.train.Checkpoint(step=self.core.step, optimizer=self.core.optimizer, w=self.core.w, b=self.core.b,
+									   regularization=self.core.regularization)
 			manager = tf.train.CheckpointManager(ckpt, self.checkpoint_dir, max_to_keep=3)
 			ckpt.restore(manager.latest_checkpoint)
 			if manager.latest_checkpoint:
@@ -134,7 +136,7 @@ class TFFMBaseModel(six.with_metaclass(ABCMeta, BaseEstimator)):
 			else:
 				print("Initializing from scratch.")
 
-		current_loss = None
+		training_loss = None
 		validation_loss = None
 		if dataset_val:
 			dataset_val_it = iter(dataset_val)
@@ -142,21 +144,26 @@ class TFFMBaseModel(six.with_metaclass(ABCMeta, BaseEstimator)):
 		for epoch in pbar:
 			for d in dataset_train:
 				pbar.set_description("Training loss: %2.3f, Validation loss: %2.3f, step: %s, epoch: %s" %
-									 ((current_loss.numpy() if current_loss else float('inf')),
-									  (validation_loss.numpy() if current_loss else float('inf')),
+									 ((training_loss.numpy() if training_loss else float('inf')),
+									  (validation_loss.numpy() if validation_loss else float('inf')),
 									  self.core.step.numpy(), epoch))
 				self.core.train(d["X"], d["y"], d["w"])
 				if int(self.core.step) % self.eval_step == 0:
-					current_loss = self.core.loss(d["y"], self.core(d["X"]), d["w"])
+					training_loss, _ = self.core.loss(d["y"], self.core(d["X"]), d["w"])
+					with self.train_writer.as_default():
+						tf.summary.scalar("loss", training_loss, step=self.core.step)
 					if dataset_val:
 						dv = next(dataset_val_it)
-						validation_loss = self.core.loss(dv["y"], self.core(dv["X"]), dv["w"])
+						validation_loss, _ = self.core.loss(dv["y"], self.core(dv["X"]), dv["w"])
+						with self.validation_writer.as_default():
+							tf.summary.scalar("loss", validation_loss, step=self.core.step)
 					if self.checkpoint_dir:
 						save_path = manager.save()
 						if self.verbose > 1:
 							print("Saved checkpoint for step {}: {}".format(int(ckpt.step), save_path))
 					if self.verbose > 1:
-						print('Epoch %2d: training loss=%2.3f, validation loss=%2.3f' % (epoch, current_loss, validation_loss))
+						print('Epoch %2d: training loss=%2.3f, validation loss=%2.3f' % (
+							epoch, training_loss, validation_loss))
 
 	def decision_function(self, X: Union[tf.data.Dataset, np.ndarray],
 						  pred_batch_size: Optional[int] = None) -> Iterable:

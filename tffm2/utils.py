@@ -144,6 +144,7 @@ def loss_mse(y_true: tf.Tensor, y_pred: tf.Tensor) -> tf.Tensor:
 
 
 # Note: this loss function expects the data in an alternating negative, positive order
+@tf.function
 def loss_bpr(pos_label: float, neg_label: float, y_true: tf.Tensor, y_pred: tf.Tensor) -> tf.Tensor:
 	outputs_rs = tf.reshape(y_pred, [-1])
 

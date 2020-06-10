@@ -109,9 +109,9 @@ class TFFMCore(object):
 			rnd_weights = tf.random.uniform([self.n_features, r], -self.init_std, self.init_std)
 			self.w[i - 1] = tf.Variable(rnd_weights, trainable=True, name='embedding_' + str(i))
 		self.b = tf.Variable(self.init_std, trainable=True, name='bias')
-		self.step = tf.Variable(1, name='step')
+		self.step = tf.Variable(1, name='step', dtype=tf.int64)
 		self.regularization = tf.Variable(0.0, name='regularization')
-		tf.summary.scalar('bias', self.b)
+		tf.summary.scalar('bias', self.b, step=self.step)
 
 	@tf.function
 	def __call__(self, train_x: tf.Tensor) -> tf.Tensor:
@@ -150,9 +150,9 @@ class TFFMCore(object):
 			for order in range(1, self.order + 1):
 				node_name = 'regularization_penalty_' + str(order)
 				norm = tf.reduce_mean(tf.pow(self.w[order - 1] * reweights, 2), name=node_name)
-				tf.summary.scalar('penalty_W_{}'.format(order), norm)
+				tf.summary.scalar('penalty_W_{}'.format(order), norm, step=self.step)
 				self.regularization.assign_add(norm)
-			tf.summary.scalar('regularization_penalty', self.regularization)
+				tf.summary.scalar('regularization_penalty', self.regularization, step=self.step)
 		return y_pred
 
 	@tf.function
@@ -165,12 +165,13 @@ class TFFMCore(object):
 			target,
 			message='NaN or Inf in target value',
 			name='target')
-		return checked_target
+		return reduced_loss, checked_target
 
 	def train(self, X, y, w):
 		with tf.GradientTape() as t:
-			current_loss = self.loss(y, self(X), w)
+			_, current_loss = self.loss(y, self(X), w)
 		vars = self.w + [self.b]
 		grads = t.gradient(current_loss, vars)
 		self.optimizer.apply_gradients(zip(grads, vars))
 		self.step.assign_add(1)
+		return current_loss
