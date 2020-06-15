@@ -132,20 +132,20 @@ def powers_and_coefs(order: int) -> Iterable:
 # Should take 2 tf.Ops: outputs, targets and should return tf.Op of element-wise losses
 # Be careful about dimensionality -- maybe tf.transpose(outputs) is needed
 
-@tf.function
+@tf.function(experimental_relax_shapes=True)
 def loss_logistic(y_true: tf.Tensor, y_pred: tf.Tensor) -> tf.Tensor:
 	margins = -y_true * tf.transpose(y_pred)
 	raw_loss = tf.math.log(tf.add(1.0, tf.exp(margins)))
 	return tf.minimum(raw_loss, 100, name='truncated_log_loss')
 
-@tf.function
+@tf.function(experimental_relax_shapes=True)
 def loss_mse(y_true: tf.Tensor, y_pred: tf.Tensor) -> tf.Tensor:
 	return tf.pow(y_true - tf.transpose(y_pred), 2, name='mse_loss')
 
 
 # Note: this loss function expects the data in an alternating negative, positive order
-@tf.function
-def loss_bpr(pos_label: float, neg_label: float, y_true: tf.Tensor, y_pred: tf.Tensor) -> tf.Tensor:
+@tf.function(experimental_relax_shapes=True)
+def loss_bpr(pos_label: tf.Tensor, neg_label: tf.Tensor, y_true: tf.Tensor, y_pred: tf.Tensor) -> tf.Tensor:
 	outputs_rs = tf.reshape(y_pred, [-1])
 
 	pos_indices = tf.reshape(tf.where(tf.equal(y_true, pos_label)), [-1])
