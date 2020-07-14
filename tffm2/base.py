@@ -210,3 +210,6 @@ class TFFMBaseModel(six.with_metaclass(ABCMeta, BaseEstimator)):
 	def weights(self):
 		"""Export underlying weights from tf.Variables to np.arrays."""
 		return [x.numpy() for x in self.core.w]
+
+	def save(self, path: str) -> None:
+		tf.saved_model.save(self.core, export_dir=path)

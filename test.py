@@ -43,7 +43,7 @@ class TestFM(unittest.TestCase):
 		return model
 
 	def decision_function_order_4(self, model, X, y):
-		model.fit(X, y)
+		model.fit(X_train=X, y_train=y)
 		b = model.intercept
 		w = model.weights
 
@@ -51,7 +51,7 @@ class TestFM(unittest.TestCase):
 
 		actual = model.decision_function(X)
 
-		actual_np = np.reshape(list(actual.map(lambda l: l["pred_raw"]))[0], [-1])
+		actual_np = np.reshape([l["pred_raw"] for l in actual], [-1])
 
 		np.testing.assert_almost_equal(actual_np, desired, decimal=4)
 
@@ -76,6 +76,16 @@ class TestFM(unittest.TestCase):
 
 	def test_FM_regressor_dataset(self):
 		self.decision_function_order_4(self.regressor(use_diag=False), self.dataset, None)
+
+	def test_saving_model(self):
+		model = self.regressor(use_diag=False)
+		model.fit(X_train=self.dataset, y_train=self.y)
+		model.save("./saved_model/")
+
+	def test_loading_model(self):
+		imported = tf.saved_model.load("./saved_model/")
+		pred = imported(self.X).numpy()
+		assert pred.shape == (20, 1)
 
 	def bruteforce_inference_one_interaction(self, X, w, order, use_diag):
 		n_obj, n_feat = X.shape

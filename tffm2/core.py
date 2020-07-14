@@ -5,7 +5,7 @@ import numpy as np  # type: ignore
 from typing import Callable, Union, Optional
 
 
-class TFFMCore(object):
+class TFFMCore(tf.Module):
 	"""This class implements underlying routines about creating computational graph.
 
 	Its required `n_features` to be set at graph building time.
@@ -94,7 +94,6 @@ class TFFMCore(object):
 		self.init_std = init_std
 		self.seed = seed
 		self.n_features = n_features
-		self.graph = None
 		self.loss_function = loss_function
 
 	def set_num_features(self, n_features: int) -> None:
@@ -113,7 +112,7 @@ class TFFMCore(object):
 		self.regularization = tf.Variable(0.0, name='regularization')
 		tf.summary.scalar('bias', self.b, step=self.step)
 
-	@tf.function
+	@tf.function(input_signature=[tf.TensorSpec(shape=None, dtype=tf.float32)])
 	def __call__(self, train_x: tf.Tensor) -> tf.Tensor:
 		with tf.name_scope('linear_part'):
 			contribution = tf.matmul(train_x, self.w[0])
